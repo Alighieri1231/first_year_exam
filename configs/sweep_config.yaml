@@ -1,0 +1,22 @@
+program: train_lightning_seg_sweep.py  # Nombre de tu script de entrenamiento
+method: bayes  # Estrategia de optimización (grid, random, bayes)
+metric:
+  name: valid_dataset_iou
+  goal: maximize  # Queremos maximizar IoU
+parameters:
+  learning_rate:
+    distribution: log_uniform_values
+    min: 1e-5
+    max: 1e-2
+  weight_decay:
+    distribution: log_uniform_values
+    min: 1e-6
+    max: 1e-2
+  encoder_name:
+    values: ["mit_b1", "resnet34"]  # Lista de opciones para el encoder
+  arch:
+    values: ["FPN", "Segformer"]  # Arquitecturas posibles
+  optimizer:
+    values: ["adam", "adamw", "sgd"]  # Tipos de optimizadores a probar
+  scheduler:
+    values: ["cosine_annealing", "step_lr"]

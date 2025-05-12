@@ -1,0 +1,53 @@
+model_opts:
+  name: "attention_unet"
+  args:
+    inchannels: 3
+    #binary outchannel 1, multiclass outchannel num_classes
+    outchannels: 1
+    encoder_name: "mit_b1" #resnet34 classic one mit_b1
+    arch: "FPN" #FPN Unet, Segformer
+    encoder_weights: imagenet #imagenet default, null for no pretraining
+    # FPN The net_depth will change accordingly to the patch size. For 128x128 it is 3, for 256x256 it is 4. This will define the number of layers of the architecture.
+    net_depth: 4
+
+train_par:
+  gpu_to_use: "cuda:0" # 'cuda:1', select the GPU where you want your training. if 'default' it will use torch.device("cuda" if torch.cuda.is_available() else "cpu")
+  random_seed: "default" # set to 'default' to replicate MICCAI's results
+  devices: 2
+  strategy: 'ddp' #ddp
+  profiler: False
+  epochs: 80
+  batch_size: 32
+  workers: 8
+  lr: 0.001
+  weight_decay: 0.001
+  eval_threshold: 0.5
+  patience: 50
+  early_stopping_flag: True
+  results_path: "/data/UNET2D/results"
+  optimizer:
+    name: "AdamW"
+  loss_opts:
+    name: "DiceLossOriginal" # BCEDiceLoss; BCELoss ; SigmoidFocalLoss; TopologicalPoolingLoss; BCEDiceLoss
+    args:
+      weight: 0.1 # this is for BCELogits (value will be computed automatically) & BCEDiceLoss (you need to input a value, default: 0.1)
+      #alpha: 1 # this is only for focal loss
+      #for 128x128x128
+      alpha: [0.0002818244106728816, 0.6997443448962491, 0.03218500222273938, 0.09628542892937603, 0.14095661371987137, 0.030546785821091195]
+      gamma: 3 # this is only for focal loss
+  #binary num_classes 2, multiclass num_classes outchannel
+  num_classes: 2
+
+dataset:
+  experiment: "experiment"
+  data_dir: "/data/GitHub/UNET2D/512x512_maddie"
+  train: "/data/GitHub/UNET2D/train_maddie.csv"
+  dev: "/data/GitHub/UNET2D/test_maddie.csv"
+  test: "/data/GitHub/UNET2D/test_maddie.csv"
+  cache_data: False
+  rescale_factor: 128
+  use_patches: False
+  patch_size: 64
+  patch_overlap: 0
+  queue_length: 100
+  samples_per_volume: 10
