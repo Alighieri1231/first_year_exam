@@ -3,17 +3,6 @@
 __pycache__/
 *.py[cod]
 *$py.class
-/LabelDataObstetrics
-/LabelDataObstetrics1
-/labelDataobstetricsweird
-/Study
-/results
-/crop_coordinates
-/output
-/output_correccion
-/output_correccion_detrending
-/output_correccion_lineal
-/dr_marika_validation
 # C extensions
 *.so
 
@@ -141,8 +130,6 @@ dmypy.json
 
 ### Lightning-Template ###
 /data/*
-/crop_coordinates/*
-/crop_coordinates/
 !/data/.gitkeep
 /models/*
 !/models/.gitkeep
