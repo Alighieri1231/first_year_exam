@@ -1,28 +1,23 @@
 import os
 import numpy as np
 import pandas as pd
-import torch
-import glob
-from torch.utils.data import Dataset
-import skvideo.io
 import cv2
-import torchio as tio
+from torch.utils.data import Dataset
 
 
 class WSIDataset(Dataset):
-    def __init__(self, meta_data, root_dir, transform=None):
-        df = pd.read_csv(meta_data)
+    def __init__(self, csv_path, root_dir, transform=None):
+        # 1) Cargo el CSV con los nombres base
+        df = pd.read_csv(csv_path)
+        filenames = df["file_name"].tolist()
 
-        self.frame_paths = []
-        self.label_paths = []
-
-        for i in range(len(df)):
-            sweep_name = df.file_name[i].split("_gt")[0]
-            sweep_frames = sorted(glob.glob(f"{root_dir}/gt/{sweep_name}_*.png"))
-            sweep_labels = sorted(glob.glob(f"{root_dir}/label/{sweep_name}_*.png"))
-
-            self.frame_paths.extend(sweep_frames)
-            self.label_paths.extend(sweep_labels)
+        # 2) Construyo las rutas a imágenes y máscaras
+        self.frame_paths = [os.path.join(root_dir, "gt", fname) for fname in filenames]
+        self.label_paths = [
+            # inserta "_mask" antes de la extensión .png
+            os.path.join(root_dir, "label", os.path.splitext(fname)[0] + "_mask.png")
+            for fname in filenames
+        ]
 
         self.transform = transform
 
@@ -30,20 +25,15 @@ class WSIDataset(Dataset):
         return len(self.frame_paths)
 
     def __getitem__(self, idx):
-        frame_path = self.frame_paths[idx]
-        label_path = self.label_paths[idx]
-
-        frame = cv2.imread(frame_path, cv2.IMREAD_GRAYSCALE)
-        label = cv2.imread(label_path, cv2.IMREAD_GRAYSCALE)
+        frame = cv2.imread(self.frame_paths[idx], cv2.IMREAD_GRAYSCALE)
+        label = cv2.imread(self.label_paths[idx], cv2.IMREAD_GRAYSCALE)
 
         frame = frame.astype(np.float32) / 255.0
         label = (label == 255).astype(np.float32)
 
         if self.transform:
             augmented = self.transform(image=frame, mask=label)
-            frame = augmented["image"]
-            label = augmented["mask"]
-        print(frame.shape)
+            frame, label = augmented["image"], augmented["mask"]
+        print("frame.shape", frame.shape)
 
-        # return in format batch['image'], batch['mask']
         return {"image": frame, "mask": label}
