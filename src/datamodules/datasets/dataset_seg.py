@@ -43,6 +43,7 @@ class WSIDataset(Dataset):
             augmented = self.transform(image=frame, mask=label)
             frame = augmented["image"]
             label = augmented["mask"]
+        print(frame.shape)
 
         # return in format batch['image'], batch['mask']
         return {"image": frame, "mask": label}
