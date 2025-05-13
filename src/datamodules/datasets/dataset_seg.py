@@ -34,6 +34,5 @@ class WSIDataset(Dataset):
         if self.transform:
             augmented = self.transform(image=frame, mask=label)
             frame, label = augmented["image"], augmented["mask"]
-        print("frame.shape", frame.shape)
 
         return {"image": frame, "mask": label}
