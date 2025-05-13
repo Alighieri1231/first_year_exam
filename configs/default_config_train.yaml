@@ -16,7 +16,7 @@ train_par:
   devices: 2
   strategy: 'ddp' #ddp
   profiler: False
-  epochs: 200
+  epochs: 2
   batch_size: 32
   workers: 8
   lr: 0.001
@@ -24,7 +24,7 @@ train_par:
   eval_threshold: 0.5
   patience: 50
   early_stopping_flag: True
-  results_path: "/data/UNET2D/results"
+  results_path: "/data/GitHub/first_year_exam/results"
   optimizer:
     name: "AdamW"
   loss_opts:
@@ -40,10 +40,10 @@ train_par:
 
 dataset:
   experiment: "experiment"
-  data_dir: "/data/GitHub/UNET2D/512x512_maddie"
-  train: "/Users/emilio/Library/CloudStorage/Box-Box/GitHub/first_year_exam/data/data_uncorrected/train.csv"
-  dev: "/Users/emilio/Library/CloudStorage/Box-Box/GitHub/first_year_exam/data/data_uncorrected/validation.csv"
-  test: "/Users/emilio/Library/CloudStorage/Box-Box/GitHub/first_year_exam/data/data_uncorrected/test.csv"
+  data_dir: "/data/GitHub/first_year_exam/data/data_uncorrected"
+  train: "/data/GitHub/first_year_exam/data/data_uncorrected/train.csv"
+  dev: "/data/GitHub/first_year_exam/data/data_uncorrected/validation.csv"
+  test: "/data/GitHub/first_year_exam/data/data_uncorrected/test.csv"
   cache_data: False
   rescale_factor: 128
   use_patches: False
