@@ -15,8 +15,8 @@ import cv2
 import lightning as L
 
 # from model_lightning_seg import MyModel
-from model_smp import USModel
-from data_datamodule_seg import WSIDataModule
+from src.models.model_smp import USModel
+from src.datamodules.data_datamodule_seg import WSIDataModule
 import random
 import numpy as np
 

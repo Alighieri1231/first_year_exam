@@ -10,8 +10,8 @@ from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.loggers import WandbLogger
 import lightning as L
 
-from model_smp import USModel
-from data_datamodule_seg import WSIDataModule
+from src.models.model_smp import USModel
+from src.datamodules.data_datamodule_seg import WSIDataModule
 
 
 # Definir la función de entrenamiento que WandB Sweeps ejecutará
