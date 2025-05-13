@@ -27,6 +27,8 @@ train_par:
   results_path: "/data/GitHub/first_year_exam/results"
   optimizer:
     name: "adamw"
+  scheduler:
+    name: 'step_lr'
   loss_opts:
     name: "DiceLossOriginal" # BCEDiceLoss; BCELoss ; SigmoidFocalLoss; TopologicalPoolingLoss; BCEDiceLoss
     args:

@@ -30,6 +30,8 @@ class USModel(L.LightningModule):
         if isinstance(self.optimizer_name, dict):
             self.optimizer_name = self.optimizer_name["name"]
         self.scheduler_name = train_par.scheduler
+        if isinstance(self.scheduler_name, dict):
+            self.scheduler_name = self.scheduler_name["name"]
         # preprocessing parameteres for image
         params = smp.encoders.get_preprocessing_params(model_opts.args.encoder_name)
         self.register_buffer("std", torch.tensor(params["std"]).view(1, 3, 1, 1))
