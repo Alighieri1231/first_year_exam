@@ -25,6 +25,10 @@ class USModel(L.LightningModule):
         self.lr = train_par.lr
         self.weight_decay = train_par.weight_decay
         self.optimizer_name = train_par.optimizer
+
+        # if self.optimizer is a dict with key 'name':'adamw', convert it to a string only adamw
+        if isinstance(self.optimizer_name, dict):
+            self.optimizer_name = self.optimizer_name["name"]
         self.scheduler_name = train_par.scheduler
         # preprocessing parameteres for image
         params = smp.encoders.get_preprocessing_params(model_opts.args.encoder_name)
@@ -222,7 +226,9 @@ class USModel(L.LightningModule):
 
         print(f"Overlays guardados en: {overlay_path}")
 
-    def log_test_images(self, data_module, threshold=0.4, val_iou=None,only_roi_frames=False):
+    def log_test_images(
+        self, data_module, threshold=0.4, val_iou=None, only_roi_frames=False
+    ):
         if val_iou is None or val_iou <= threshold:
             print(f"No se loggearán imágenes porque val_iou ({val_iou}) ≤ {threshold}")
             return  # No hacer nada si val_iou es menor o igual a 0.4
