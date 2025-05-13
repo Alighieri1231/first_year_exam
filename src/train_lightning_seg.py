@@ -5,7 +5,7 @@ import wandb
 import os
 
 import torch
-from lightning.pytorch import seed_everything
+from lightning.pytorch import seed_everything, Trainer
 from lightning.pytorch.callbacks import DeviceStatsMonitor
 from lightning.pytorch.callbacks.early_stopping import EarlyStopping
 from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
@@ -78,25 +78,21 @@ if __name__ == "__main__":
     conf.train_par.results_model_filename = os.path.join(results_path, f"{tb_exp_name}")
     # print(conf.train_par.results_model_filename)
     # wandb logger
+    seed_everything(seed=2024, workers=True)
+
+    # Configuración de logging y callbacks
     wandb_logger = WandbLogger(project="first_year", entity="ia-lim", config=conf)
     early_stop_callback = EarlyStopping(
-        monitor="valid_dataset_iou",
-        min_delta=0.00,
-        patience=conf.train_par.patience,
-        verbose=True,
-        mode="max",
+        monitor="valid_dataset_iou", patience=10, mode="max"
     )
-
     model_checkpoint = ModelCheckpoint(
-        filename=conf.train_par.results_model_filename,
-        monitor="valid_dataset_iou",
-        mode="max",
+        monitor="valid_dataset_iou", mode="max", save_top_k=1, save_last=True
     )
-    # lightning_model = MyModel(model_opts=conf.model_opts, train_par=conf.train_par)
-    lightning_model = USModel(model_opts=conf.model_opts)
 
-    trainer = L.Trainer(
-        # max_epochs=conf.train_par.epochs, accelerator="auto", devices="auto", precision='bf16-mixed',logger=wandb_logger,callbacks=[early_stop_callback,model_checkpoint],
+    # lightning_model = MyModel(model_opts=conf.model_opts, train_par=conf.train_par)
+    model = USModel(model_opts=conf.model_opts, train_par=conf.train_par)
+    # Configurar el entrenador con los valores optimizados
+    trainer = Trainer(
         max_epochs=conf.train_par.epochs,
         accelerator="auto",
         devices=conf.train_par.devices,
@@ -104,13 +100,16 @@ if __name__ == "__main__":
         logger=wandb_logger,
         profiler=conf.train_par.profiler,
         callbacks=[early_stop_callback, model_checkpoint],
+        precision="bf16-mixed",
         deterministic=True,
-        # default_root_dir=results_path,  # +"/"#,log_every_n_steps=46
     )
 
-    trainer.fit(model=lightning_model, datamodule=data_module)
+    # Entrenar modelo
+    trainer.fit(model, datamodule=data_module)
+
+    print(f"Best model path: {model_checkpoint.best_model_path}")
     #   TEST FINAL
-    trainer.test(model=lightning_model, datamodule=data_module)
+    trainer.test(model=model, datamodule=data_module)
 
     # GUARDAR OVERLAYS DE TEST
-    lightning_model.save_test_overlays(data_module, results_path, "test")
+    model.save_test_overlays(data_module, results_path, "test")
