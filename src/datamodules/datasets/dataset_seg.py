@@ -6,9 +6,9 @@ from torch.utils.data import Dataset
 
 
 class WSIDataset(Dataset):
-    def __init__(self, csv_path, root_dir, transform=None):
+    def __init__(self, meta_data, root_dir, transform=None):
         # 1) Cargo el CSV con los nombres base
-        df = pd.read_csv(csv_path)
+        df = pd.read_csv(meta_data)
         filenames = df["file_name"].tolist()
 
         # 2) Construyo las rutas a imágenes y máscaras
