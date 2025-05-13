@@ -9,6 +9,7 @@ import numpy as np
 
 import torch
 
+
 def seed_worker(worker_id):
     worker_seed = torch.initial_seed() % 2**32
     np.random.seed(worker_seed)
@@ -37,8 +38,6 @@ class WSIDataModule(L.LightningDataModule):
         self.cache_data = cache_data
         self.random_seed = random_seed
 
-
-
     def prepare_data(self):
         # Download / locate your data
         pass
@@ -47,27 +46,27 @@ class WSIDataModule(L.LightningDataModule):
         if stage == "fit":
             train_transform = A.Compose(
                 [
-                    A.CLAHE(clip_limit=2.0, tile_grid_size=(8, 8), p=1),
-                    A.HorizontalFlip(p=0.5),
-                    A.RandomBrightnessContrast(
-                        p=0.2,
-                        brightness_limit=0.1,
-                        contrast_limit=0.1,
-                    ),
-                    A.RandomGamma(gamma_limit=(80, 120), p=0.3),
-                    A.Affine(
-                        scale=(0.9, 1.1),
-                        translate_percent=(-0.05, 0.05),
-                        rotate=(
-                            -10,
-                            10,
-                        ),  # Puedes poner (-10, 10) por ejemplo si quieres rotaciones suaves
-                        p=0.3,
-                    ),
+                    # A.CLAHE(clip_limit=2.0, tile_grid_size=(8, 8), p=1),
+                    # A.HorizontalFlip(p=0.5),
+                    # A.RandomBrightnessContrast(
+                    #     p=0.2,
+                    #     brightness_limit=0.1,
+                    #     contrast_limit=0.1,
+                    # ),
+                    # A.RandomGamma(gamma_limit=(80, 120), p=0.3),
+                    # A.Affine(
+                    #     scale=(0.9, 1.1),
+                    #     translate_percent=(-0.05, 0.05),
+                    #     rotate=(
+                    #         -10,
+                    #         10,
+                    #     ),  # Puedes poner (-10, 10) por ejemplo si quieres rotaciones suaves
+                    #     p=0.3,
+                    # ),
                     ToTensorV2(),
                 ]
             )
-            #print transforms on console
+            # print transforms on console
 
             val_transform = A.Compose([ToTensorV2()])
 
@@ -99,8 +98,8 @@ class WSIDataModule(L.LightningDataModule):
             shuffle=True,
             num_workers=self.workers,
             pin_memory=True,
-            #worker_init_fn=seed_worker,
-            #generator=torch.Generator().manual_seed(self.random_seed),
+            # worker_init_fn=seed_worker,
+            # generator=torch.Generator().manual_seed(self.random_seed),
         )
 
     def val_dataloader(self):
@@ -110,8 +109,8 @@ class WSIDataModule(L.LightningDataModule):
             shuffle=False,
             num_workers=self.workers,
             pin_memory=True,
-            #worker_init_fn=seed_worker,
-            #generator=torch.Generator().manual_seed(self.random_seed),
+            # worker_init_fn=seed_worker,
+            # generator=torch.Generator().manual_seed(self.random_seed),
         )
 
     def test_dataloader(self):
@@ -121,6 +120,6 @@ class WSIDataModule(L.LightningDataModule):
             shuffle=False,
             num_workers=self.workers,
             pin_memory=True,
-            #worker_init_fn=seed_worker,
-            #generator=torch.Generator().manual_seed(self.random_seed),
+            # worker_init_fn=seed_worker,
+            # generator=torch.Generator().manual_seed(self.random_seed),
         )

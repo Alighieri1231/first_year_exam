@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.optim import lr_scheduler
+import itertools
 import segmentation_models_pytorch as smp
 from gan_modules import Discriminator
 
@@ -101,9 +102,6 @@ class DualSegGAN(L.LightningModule):
         # — Pérdidas de segmentación
         loss1 = self.seg_loss(pred1, masks)
         loss2 = self.seg_loss(pred2, masks)
-        # aplicamos coeficiente de confianza
-        loss1 = loss1 * conf
-        loss2 = loss2 * conf
 
         # — Pérdida adversarial para G: D(fake) debería ser 1
         score_fake1 = self.discriminator(pred1)
