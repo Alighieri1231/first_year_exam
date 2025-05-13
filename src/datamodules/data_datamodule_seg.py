@@ -5,6 +5,7 @@ import albumentations as A
 from albumentations.pytorch import ToTensorV2
 import random
 import torch
+import cv2
 import numpy as np
 
 import torch
@@ -46,6 +47,7 @@ class WSIDataModule(L.LightningDataModule):
         if stage == "fit":
             train_transform = A.Compose(
                 [
+                    A.Resize(height=320, width=320, interpolation=cv2.INTER_LINEAR),
                     # A.CLAHE(clip_limit=2.0, tile_grid_size=(8, 8), p=1),
                     # A.HorizontalFlip(p=0.5),
                     # A.RandomBrightnessContrast(
@@ -68,7 +70,12 @@ class WSIDataModule(L.LightningDataModule):
             )
             # print transforms on console
 
-            val_transform = A.Compose([ToTensorV2()])
+            val_transform = A.Compose(
+                [
+                    A.Resize(height=320, width=320, interpolation=cv2.INTER_LINEAR),
+                    ToTensorV2(),
+                ]
+            )
 
             self.train_dataset = WSIDataset(
                 meta_data=self.train_file,
@@ -83,7 +90,12 @@ class WSIDataModule(L.LightningDataModule):
             )
 
         if stage == "test":
-            test_transform = A.Compose([ToTensorV2()])
+            test_transform = A.Compose(
+                [
+                    A.Resize(height=320, width=320, interpolation=cv2.INTER_LINEAR),
+                    ToTensorV2(),
+                ]
+            )
 
             self.test_dataset = WSIDataset(
                 meta_data=self.test_file,
