@@ -5,7 +5,7 @@ model_opts:
     #binary outchannel 1, multiclass outchannel num_classes
     outchannels: 1
     encoder_name: "resnet34" #"mit_b1" #resnet34 classic one mit_b1
-    arch: "DeepLabV3+" #"FPN" #FPN Unet, Segformer
+    arch: "deeplabv3plus" #"FPN" #FPN Unet, Segformer
     encoder_weights: imagenet #imagenet default, null for no pretraining
     # FPN The net_depth will change accordingly to the patch size. For 128x128 it is 3, for 256x256 it is 4. This will define the number of layers of the architecture.
     net_depth: 5
