@@ -13,6 +13,7 @@ import lightning as L
 from model_smp import USModel
 from data_datamodule_seg import WSIDataModule
 
+
 # Definir la función de entrenamiento que WandB Sweeps ejecutará
 def main():
     # Inicializar el experimento de WandB con los valores del Sweep
@@ -21,7 +22,10 @@ def main():
     torch.set_float32_matmul_precision("medium")
 
     # Cargar configuración YAML
-    with open("/data/GitHub/UNET2D/default_config_train_seg copy.yaml", "r") as f:
+    with open(
+        "/Users/emilio/Library/CloudStorage/Box-Box/GitHub/first_year_exam/configs/default_config_train.yaml",
+        "r",
+    ) as f:
         conf = Dict(yaml.safe_load(f))
     # Obtener hiperparámetros del Sweep
     sweep_config = wandb.config
@@ -29,12 +33,11 @@ def main():
     conf.train_par.lr = sweep_config.learning_rate
     conf.train_par.weight_decay = sweep_config.weight_decay
     conf.train_par.optimizer = sweep_config.optimizer
-    #conf.train_par.scheduler = sweep_config.scheduler
-    conf.train_par.scheduler = 'step_lr'
+    # conf.train_par.scheduler = sweep_config.scheduler
+    conf.train_par.scheduler = "step_lr"
     conf.model_opts.args.encoder_name = sweep_config.encoder_name
-    #arch
+    # arch
     conf.model_opts.args.arch = sweep_config.arch
-
 
     # Configurar DataModule con los nuevos hiperparámetros
     data_module = WSIDataModule(
@@ -52,10 +55,13 @@ def main():
     seed_everything(seed=2024, workers=True)
 
     # Configuración de logging y callbacks
-    wandb_logger = WandbLogger(project="2dheart_sweep_finaltune", entity="ia-lim", config=conf)
-    early_stop_callback = EarlyStopping(monitor="valid_dataset_iou", patience=10, mode="max")
-    model_checkpoint = ModelCheckpoint(monitor="valid_dataset_iou", mode="max", save_top_k=1, save_last=True)
-
+    wandb_logger = WandbLogger(project="first_year", entity="ia-lim", config=conf)
+    early_stop_callback = EarlyStopping(
+        monitor="valid_dataset_iou", patience=10, mode="max"
+    )
+    model_checkpoint = ModelCheckpoint(
+        monitor="valid_dataset_iou", mode="max", save_top_k=1, save_last=True
+    )
 
     # Crear modelo con hiperparámetros ajustados
     model = USModel(model_opts=conf.model_opts, train_par=conf.train_par)
@@ -78,13 +84,12 @@ def main():
 
     print(f"Best model path: {model_checkpoint.best_model_path}")
 
-
     # Evaluar en validación del mejor modelo
     if model_checkpoint.best_model_path:
         best_model = USModel.load_from_checkpoint(
-            model_checkpoint.best_model_path, 
-            model_opts=conf.model_opts, 
-            train_par=conf.train_par
+            model_checkpoint.best_model_path,
+            model_opts=conf.model_opts,
+            train_par=conf.train_par,
         )
         metrics = trainer.validate(best_model, datamodule=data_module)
         val_iou = metrics[0]["valid_dataset_iou"]
@@ -95,12 +100,12 @@ def main():
         # Evaluar en test solo si el mejor modelo tiene val_iou > 0.4
         if val_iou > 0.4:
             trainer.test(best_model, datamodule=data_module)
-            best_model.log_test_images(data_module, num_images=10, val_iou=val_iou,threshold=0.4)
-
+            best_model.log_test_images(
+                data_module, num_images=10, val_iou=val_iou, threshold=0.4
+            )
 
     return val_iou
 
 
 if __name__ == "__main__":
     main()
-    

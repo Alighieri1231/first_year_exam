@@ -29,14 +29,14 @@ if __name__ == "__main__":
         "-c",
         "--config-file",
         type=str,
-        default="/data/GitHub/UNET2D/default_config_train_seg copy.yaml",
+        default="/Users/emilio/Library/CloudStorage/Box-Box/GitHub/first_year_exam/configs/default_config_train.yaml",
     )
 
     args = trainparser.parse_args()
 
     conf = Dict(yaml.safe_load(open(args.config_file, "r")))
 
-    #torch.backends.cudnn.benchmark = True
+    # torch.backends.cudnn.benchmark = True
     torch.set_float32_matmul_precision("medium")
     data_dir = conf.dataset.data_dir
     train_file = conf.dataset.train
@@ -72,14 +72,13 @@ if __name__ == "__main__":
     # Tamaño del batch de imágenes: torch.Size([1, 1, 128, 128, 128])
     # Tamaño del batch de etiquetas: torch.Size([1])
 
-  
     results_path = os.path.join(conf.train_par.results_path, conf.dataset.experiment)
     os.makedirs(results_path, exist_ok=True)
     # print(results_path)
     conf.train_par.results_model_filename = os.path.join(results_path, f"{tb_exp_name}")
     # print(conf.train_par.results_model_filename)
     # wandb logger
-    wandb_logger = WandbLogger(project="2dheart_segmentation", entity="ia-lim", config=conf)
+    wandb_logger = WandbLogger(project="first_year", entity="ia-lim", config=conf)
     early_stop_callback = EarlyStopping(
         monitor="valid_dataset_iou",
         min_delta=0.00,
@@ -114,4 +113,4 @@ if __name__ == "__main__":
     trainer.test(model=lightning_model, datamodule=data_module)
 
     # GUARDAR OVERLAYS DE TEST
-    lightning_model.save_test_overlays(data_module, results_path,"test_overlays1e4cosine")
+    lightning_model.save_test_overlays(data_module, results_path, "test")

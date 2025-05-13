@@ -33,7 +33,7 @@ class WSIDataset(Dataset):
         frame_path = self.frame_paths[idx]
         label_path = self.label_paths[idx]
 
-        frame = cv2.imread(frame_path,cv2.IMREAD_GRAYSCALE)
+        frame = cv2.imread(frame_path, cv2.IMREAD_GRAYSCALE)
         label = cv2.imread(label_path, cv2.IMREAD_GRAYSCALE)
 
         frame = frame.astype(np.float32) / 255.0
