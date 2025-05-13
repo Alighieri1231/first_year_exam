@@ -26,7 +26,7 @@ train_par:
   early_stopping_flag: True
   results_path: "/data/GitHub/first_year_exam/results"
   optimizer:
-    name: "AdamW"
+    name: "adamw"
   loss_opts:
     name: "DiceLossOriginal" # BCEDiceLoss; BCELoss ; SigmoidFocalLoss; TopologicalPoolingLoss; BCEDiceLoss
     args:
