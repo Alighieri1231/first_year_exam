@@ -5,7 +5,7 @@ model_opts:
     #binary outchannel 1, multiclass outchannel num_classes
     outchannels: 1
     encoder_name: "resnet34" #"mit_b1" #resnet34 classic one mit_b1
-    arch: "deeplabv3plus" #"FPN" #FPN Unet, Segformer
+    arch: "PSPNet" #"FPN" #FPN Unet, Segformer
     encoder_weights: imagenet #imagenet default, null for no pretraining
     # FPN The net_depth will change accordingly to the patch size. For 128x128 it is 3, for 256x256 it is 4. This will define the number of layers of the architecture.
     net_depth: 5
@@ -14,7 +14,7 @@ train_par:
   gpu_to_use: "cuda:0" # 'cuda:1', select the GPU where you want your training. if 'default' it will use torch.device("cuda" if torch.cuda.is_available() else "cpu")
   random_seed: "default" # set to 'default' to replicate MICCAI's results
   devices: 2
-  strategy: 'ddp' #ddp
+  strategy: 'ddp_find_unused_parameters_true' #'ddp' #ddp
   profiler: False
   epochs: 100
   batch_size: 32

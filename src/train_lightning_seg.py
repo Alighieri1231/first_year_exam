@@ -100,9 +100,9 @@ if __name__ == "__main__":
         logger=wandb_logger,
         profiler=conf.train_par.profiler,
         callbacks=[early_stop_callback, model_checkpoint],
-        precision="bf16-mixed",
-        deterministic=True,
-    )
+        precision="bf16-mixed",)
+        #deterministic=True,
+    #)
 
     # Entrenar modelo
     trainer.fit(model, datamodule=data_module)
