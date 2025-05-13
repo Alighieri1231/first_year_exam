@@ -29,7 +29,7 @@ if __name__ == "__main__":
         "-c",
         "--config-file",
         type=str,
-        default="/Users/emilio/Library/CloudStorage/Box-Box/GitHub/first_year_exam/configs/default_config_train.yaml",
+        default="/data/GitHub/first_year_exam/configs/default_config_train.yaml",
     )
 
     args = trainparser.parse_args()
