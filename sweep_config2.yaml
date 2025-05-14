@@ -1,4 +1,4 @@
-program: train_lightning_seg_sweep2.py  # Nombre de tu script de entrenamiento
+program: src/train_lightning_seg_sweep2.py  # Nombre de tu script de entrenamiento
 method: bayes  # Estrategia de optimización (grid, random, bayes)
 metric:
   name: valid_dataset_iou
@@ -15,6 +15,8 @@ parameters:
   encoder_name:
     values: ["mit_b1", "resnet34"]  # Lista de opciones para el encoder
   arch:
-    values: ["FPN", "Segformer"]  # Arquitecturas posibles
+    values: ["unet"]  # Arquitecturas posibles
   optimizer:
-    values: ["adam", "adamw"]  # Tipos de optimizadores a probar
+    values: ["adam", "adamw","sgd"]  # Tipos de optimizadores a probar
+  scheduler:
+    values: ["cosine_annealing", "step_lr"]

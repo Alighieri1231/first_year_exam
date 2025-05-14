@@ -23,7 +23,7 @@ def main():
 
     # Cargar configuración YAML
     with open(
-        "/Users/emilio/Library/CloudStorage/Box-Box/GitHub/first_year_exam/configs/default_config_train.yaml",
+        "/data/GitHub/first_year_exam/configs/default_config_train.yaml",
         "r",
     ) as f:
         conf = Dict(yaml.safe_load(f))
@@ -55,7 +55,7 @@ def main():
     seed_everything(seed=2024, workers=True)
 
     # Configuración de logging y callbacks
-    wandb_logger = WandbLogger(project="first_year", entity="ia-lim", config=conf)
+    wandb_logger = WandbLogger(project="first_year_sweep", entity="ia-lim", config=conf)
     early_stop_callback = EarlyStopping(
         monitor="valid_dataset_iou", patience=10, mode="max"
     )
@@ -75,9 +75,9 @@ def main():
         logger=wandb_logger,
         profiler=conf.train_par.profiler,
         callbacks=[early_stop_callback, model_checkpoint],
-        precision="bf16-mixed",
-        deterministic=True,
-    )
+        precision="bf16-mixed",)
+    #     deterministic=True,
+    # )
 
     # Entrenar modelo
     trainer.fit(model, datamodule=data_module)
@@ -101,7 +101,7 @@ def main():
         if val_iou > 0.4:
             trainer.test(best_model, datamodule=data_module)
             best_model.log_test_images(
-                data_module, num_images=10, val_iou=val_iou, threshold=0.4
+                data_module, num_images=10, val_iou=val_iou, threshold=0.4, only_roi_frames=True
             )
 
     return val_iou

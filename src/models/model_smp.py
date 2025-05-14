@@ -229,7 +229,7 @@ class USModel(L.LightningModule):
         print(f"Overlays guardados en: {overlay_path}")
 
     def log_test_images(
-        self, data_module, threshold=0.4, val_iou=None, only_roi_frames=False
+        self, data_module, threshold=0.4, val_iou=None, only_roi_frames=False,num_images=10
     ):
         if val_iou is None or val_iou <= threshold:
             print(f"No se loggearán imágenes porque val_iou ({val_iou}) ≤ {threshold}")
@@ -240,6 +240,23 @@ class USModel(L.LightningModule):
         self.to(device)
 
         test_loader = data_module.test_dataloader()
+        # Limitar el número de imágenes a loggear
+        test_loader = torch.utils.data.Subset(
+            test_loader.dataset,
+            np.random.choice(
+                range(len(test_loader.dataset)),
+                size=min(num_images, len(test_loader.dataset)),
+                replace=False,
+            ),
+        )
+        test_loader = torch.utils.data.DataLoader(
+            test_loader,
+            batch_size=1,
+            shuffle=False,
+            num_workers=4,
+            pin_memory=True,
+        )
+
         wandb_images = []
 
         with torch.no_grad():
