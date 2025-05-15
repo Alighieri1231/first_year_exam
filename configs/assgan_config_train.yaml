@@ -27,7 +27,8 @@ train_par:
   # pesos en la función objetivo
   lambda_seg: 1.0
   lambda_adv: 0.01
-  lambda_semi: 0.5
+  lambda_adv_u: 0.01
+  lambda_semi: 0.2
 
   # semi-supervisión
   supervised_epochs: 50

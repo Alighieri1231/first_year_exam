@@ -59,6 +59,7 @@ class ASSGAN(L.LightningModule):
         self.adam_betas = (0.9, 0.9)
         self.lambda_seg = train_par.lambda_seg
         self.lambda_adv = train_par.lambda_adv
+        self.lambda_adv_u = train_par.lambda_adv_u  # weight for unlabeled adv loss
         self.lambda_semi = train_par.lambda_semi  # weight for pseudo‐loss
         self.supervised_epochs = train_par.supervised_epochs  # e.g. 200
         self.gamma_thresh = train_par.gamma_thresh  # e.g. 0.2
@@ -102,6 +103,8 @@ class ASSGAN(L.LightningModule):
         if epoch >= self.supervised_epochs and hasattr(
             self.trainer.datamodule, "unlabeled_dataloader"
         ):
+            # change lambda_adv to lambda_adv_u
+            self.lambda_adv = self.lambda_adv_u
             # get a batch of unlabeled images
             if self.unlab_iter is None:
                 self.unlab_iter = iter(self.trainer.datamodule.unlabeled_dataloader())
