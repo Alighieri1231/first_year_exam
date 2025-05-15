@@ -14,7 +14,7 @@ train_par:
   profiler: False
 
   # ciclo de entrenamiento
-  epochs: 100
+  epochs: 10
   batch_size: 32
   workers: 8
 
@@ -31,7 +31,7 @@ train_par:
   lambda_semi: 0.2
 
   # semi-supervisión
-  supervised_epochs: 50
+  supervised_epochs: 5
   gamma_thresh: 0.2
 
   # paths y early stopping
