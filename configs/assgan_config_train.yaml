@@ -10,7 +10,7 @@ train_par:
   # reproducibilidad y dispositivos
   random_seed: 2024
   devices: 2
-  strategy: 'ddp' #"ddp_find_unused_parameters_true"
+  strategy: "ddp_find_unused_parameters_true"
   profiler: False
 
   # ciclo de entrenamiento
