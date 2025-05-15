@@ -191,7 +191,7 @@ class ASSGAN(L.LightningModule):
         g_loss = (
             self.lambda_seg * (loss_seg1 + loss_seg2)
             + self.lambda_adv * (adv1_l + adv2_l + adv1_u + adv2_u)
-            + self.lambda_semi(semi1 + semi2)
+            + (semi1 + semi2)
         )
 
         self.manual_backward(g_loss)
