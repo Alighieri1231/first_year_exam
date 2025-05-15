@@ -1,9 +1,9 @@
 model_opts:
   # argumentos para los dos generadores G1 y G2
   args:
-    arch1: "deeplabv3plusplus"          # nombre de la arquitectura para G1
+    arch1: "deeplabv3plus"          # nombre de la arquitectura para G1
     encoder_name1: "resnet34"
-    arch2: "PSPNet"             # nombre de la arquitectura para G2
+    arch2: "pspnet"             # nombre de la arquitectura para G2
     encoder_name2: "resnet34"
 
 train_par:
