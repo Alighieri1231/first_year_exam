@@ -1,0 +1,49 @@
+model_opts:
+  # argumentos para los dos generadores G1 y G2
+  args:
+    arch1: "PSPNet"          # nombre de la arquitectura para G1
+    encoder_name1: "resnet34"
+    arch2: "FPN"             # nombre de la arquitectura para G2
+    encoder_name2: "resnet34"
+
+train_par:
+  # reproducibilidad y dispositivos
+  random_seed: 2024
+  devices: 2
+  strategy: "ddp_find_unused_parameters_true"
+  profiler: False
+
+  # ciclo de entrenamiento
+  epochs: 100
+  batch_size: 32
+  workers: 8
+
+  # tasas de aprendizaje y regularización (G y D)
+  lr_g: 0.001
+  lr_d: 0.001
+  weight_decay: 0.001
+  adam_betas: [0.9, 0.9]
+
+  # pesos en la función objetivo
+  lambda_seg: 1.0
+  lambda_adv: 0.01
+  lambda_semi: 0.5
+
+  # semi-supervisión
+  supervised_epochs: 50
+  gamma_thresh: 0.2
+
+  # paths y early stopping
+  results_path: "/data/GitHub/first_year_exam/results"
+  early_stopping:
+    monitor: "valid_dataset_iou"
+    patience: 10
+    mode: "max"
+
+dataset:
+  experiment: "experiment"
+  data_dir: "/data/GitHub/first_year_exam/data/data_uncorrected"
+  train: "/data/GitHub/first_year_exam/data/data_uncorrected/train.csv"
+  dev:   "/data/GitHub/first_year_exam/data/data_uncorrected/validation.csv"
+  test:  "/data/GitHub/first_year_exam/data/data_uncorrected/test.csv"
+  cache_data: False

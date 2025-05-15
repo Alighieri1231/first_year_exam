@@ -316,9 +316,9 @@ def compute_per_channel_topology_component(
     input, target, start_channel, kernel_list, stride_list
 ):
     """Computes the per-channel topology component of the input and target tensors."""
-    assert (
-        input.size() == target.size()
-    ), "'input' and 'target' must have the same shape"
+    assert input.size() == target.size(), (
+        "'input' and 'target' must have the same shape"
+    )
     num_channels = input.size(1)
     num_dims = input.dim() - 2  # Calculate the number of dimensions: 3 for 3D, 2 for 2D
     difference_ks_list = []
@@ -462,3 +462,55 @@ class TopologyDiceLossOriginal(nn.Module):
         # Combinar BCE y Dice Loss
         combined_loss = self.weight * topology_loss + self.weight * dice_loss
         return combined_loss
+
+
+class CrossEntropy2d(nn.Module):
+    def __init__(self, size_average=True, ignore_label=255):
+        super(CrossEntropy2d, self).__init__()
+        self.size_average = size_average
+        self.ignore_label = ignore_label
+
+    def forward(self, predict, target, weight=None):
+        assert not target.requires_grad
+        assert predict.dim() == 4
+        assert target.dim() == 3
+        n, c, h, w = predict.size()
+        # máscara de píxeles válidos
+        target_mask = (target >= 0) & (target != self.ignore_label)
+        target = target[target_mask]
+        if not target.dim():
+            # devuelve un tensor en el mismo dispositivo
+            return torch.zeros(1, device=predict.device)
+
+        predict = predict.transpose(1, 2).transpose(2, 3).contiguous()
+        predict = predict[target_mask.view(n, h, w, 1).repeat(1, 1, 1, c)]
+        predict = predict.view(-1, c)
+
+        reduction = "mean" if self.size_average else "sum"
+        loss = F.cross_entropy(predict, target, weight=weight, reduction=reduction)
+        return loss
+
+
+class BCEWithLogitsLoss2d(nn.Module):
+    def __init__(self, size_average=True, ignore_label=255):
+        super(BCEWithLogitsLoss2d, self).__init__()
+        self.size_average = size_average
+        self.ignore_label = ignore_label
+
+    def forward(self, predict, target, weight=None):
+        assert not target.requires_grad
+        assert predict.dim() == 4
+        assert target.dim() == 4
+        n, c, h, w = predict.size()
+        target_mask = (target >= 0) & (target != self.ignore_label)
+        target = target[target_mask]
+        if not target.dim():
+            return torch.zeros(1, device=predict.device)
+
+        predict = predict[target_mask]
+
+        reduction = "mean" if self.size_average else "sum"
+        loss = F.binary_cross_entropy_with_logits(
+            predict, target, weight=weight, reduction=reduction
+        )
+        return loss

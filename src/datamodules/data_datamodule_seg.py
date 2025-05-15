@@ -1,6 +1,6 @@
 from src.datamodules.datasets.dataset_seg import WSIDataset
 import lightning as L
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 import random
@@ -77,11 +77,31 @@ class WSIDataModule(L.LightningDataModule):
                 ]
             )
 
-            self.train_dataset = WSIDataset(
+            # 1) Carga el dataset completo
+            full_train = WSIDataset(
                 meta_data=self.train_file,
                 root_dir=self.data_dir,
                 transform=train_transform,
             )
+
+            # prepare data to have unlabeled data
+            # 2) Baraja y divide índices
+            n_total = len(full_train)  # p.ej. 547
+            all_idx = list(range(n_total))
+            random.seed(self.random_seed)
+            random.shuffle(all_idx)
+            labeled_idx = all_idx[:100]  # primeros 100
+            unlabeled_idx = all_idx[100:]  # el resto (~447)
+
+            # 3) Crea los subsets
+            self.train_dataset = Subset(full_train, labeled_idx)
+            self.unlabeled_dataset = Subset(full_train, unlabeled_idx)
+
+            # self.train_dataset = WSIDataset(
+            #     meta_data=self.train_file,
+            #     root_dir=self.data_dir,
+            #     transform=train_transform,
+            # )
 
             self.dev_dataset = WSIDataset(
                 meta_data=self.dev_file,
@@ -134,4 +154,14 @@ class WSIDataModule(L.LightningDataModule):
             pin_memory=True,
             # worker_init_fn=seed_worker,
             # generator=torch.Generator().manual_seed(self.random_seed),
+        )
+
+    def unlabeled_dataloader(self):
+        # este loader es el que usarás en training_step para Alg. 2
+        return DataLoader(
+            self.unlabeled_dataset,
+            batch_size=self.batch_size,
+            shuffle=True,  # conviene barajar
+            num_workers=self.workers,
+            pin_memory=True,
         )
