@@ -140,7 +140,7 @@ class ASSGAN(L.LightningModule):
                 self.unlab_iter = iter(self.trainer.datamodule.unlabeled_dataloader())
                 unlab = next(self.unlab_iter)
 
-            imgs_u = unlab["image"]  # (B,3,H,W)
+            imgs_u = unlab["image"].to(self.device)  # (B,3,H,W)
             # forward G on unlabeled
             pred1_u = self.generator1(self.processg1(imgs_u))
             pred2_u = self.generator2(self.processg2(imgs_u))
