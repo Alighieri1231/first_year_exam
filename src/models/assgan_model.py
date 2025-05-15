@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.optim as optim
 import lightning as L
 import segmentation_models_pytorch as smp
-
+from segmentation_models_pytorch.metrics import get_stats, iou_score, f1_score, accuracy
 from src.models.modules.gan_modules import Discriminator, FCDiscriminator
 
 # ──────── LOSS DEFINITION ────────
@@ -78,6 +78,11 @@ class ASSGAN(L.LightningModule):
 
         # buffer for pulling unlabeled data
         self.unlab_iter = None
+
+        # initialize step metics
+        self.training_step_outputs = []
+        self.validation_step_outputs = []
+        self.test_step_outputs = []
 
     def forward(self, x):
         raise NotImplementedError("Use training_step to control G/D separately")
@@ -248,6 +253,73 @@ class ASSGAN(L.LightningModule):
             prog_bar=True,
             sync_dist=True,
         )
+
+    def _shared_eval_step(self, batch, stage: str):
+        """Evalúa un batch: hace forward con G1 y G2, promedia y calcula stats."""
+        imgs = batch["image"]
+        masks = batch["mask"].unsqueeze(1).long()  # (B,1,H,W) en {0,1}
+
+        # Forward de ambos generadores (solo segmentación supervisada)
+        p1 = self.generator1(self.processg1(imgs))
+        p2 = self.generator2(self.processg2(imgs))
+
+        # probabilidades y predicción promedio
+        prob1 = torch.sigmoid(p1)
+        prob2 = torch.sigmoid(p2)
+        prob_avg = 0.5 * (prob1 + prob2)
+
+        # threshold → máscara binaria
+        pred_mask = (prob_avg > 0.5).long()
+
+        # Calcula stats por imagen
+        tp, fp, fn, tn = get_stats(pred_mask, masks, mode="binary")
+
+        return {"tp": tp, "fp": fp, "fn": fn, "tn": tn}
+
+    def validation_step(self, batch, batch_idx):
+        out = self._shared_eval_step(batch, "valid")
+        self.validation_step_outputs.append(out)
+        return out
+
+    def on_validation_epoch_end(self):
+        # concatena todas las stats
+        tp = torch.cat([x["tp"] for x in self.validation_step_outputs])
+        fp = torch.cat([x["fp"] for x in self.validation_step_outputs])
+        fn = torch.cat([x["fn"] for x in self.validation_step_outputs])
+        tn = torch.cat([x["tn"] for x in self.validation_step_outputs])
+
+        # métricas
+        iou = iou_score(tp, fp, fn, tn, reduction="micro-imagewise")
+        acc = accuracy(tp, fp, fn, tn, reduction="micro-imagewise")
+        f1 = f1_score(tp, fp, fn, tn, reduction="micro-imagewise")
+
+        self.log("val/iou", iou, prog_bar=True, sync_dist=True)
+        self.log("val/acc", acc, prog_bar=True, sync_dist=True)
+        self.log("val/f1", f1, prog_bar=True, sync_dist=True)
+
+        # limpia buffer
+        self.validation_step_outputs.clear()
+
+    def test_step(self, batch, batch_idx):
+        out = self._shared_eval_step(batch, "test")
+        self.test_step_outputs.append(out)
+        return out
+
+    def on_test_epoch_end(self):
+        tp = torch.cat([x["tp"] for x in self.test_step_outputs])
+        fp = torch.cat([x["fp"] for x in self.test_step_outputs])
+        fn = torch.cat([x["fn"] for x in self.test_step_outputs])
+        tn = torch.cat([x["tn"] for x in self.test_step_outputs])
+
+        iou = iou_score(tp, fp, fn, tn, reduction="micro-imagewise")
+        acc = accuracy(tp, fp, fn, tn, reduction="micro-imagewise")
+        f1 = f1_score(tp, fp, fn, tn, reduction="micro-imagewise")
+
+        self.log("test/iou", iou, prog_bar=True, sync_dist=True)
+        self.log("test/acc", acc, prog_bar=True, sync_dist=True)
+        self.log("test/f1", f1, prog_bar=True, sync_dist=True)
+
+        self.test_step_outputs.clear()
 
     def configure_optimizers(self):
         opt_g = optim.Adam(
