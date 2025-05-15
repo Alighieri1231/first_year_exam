@@ -1,9 +1,9 @@
 model_opts:
   # argumentos para los dos generadores G1 y G2
   args:
-    arch1: "PSPNet"          # nombre de la arquitectura para G1
+    arch1: "deeplabv3plusplus"          # nombre de la arquitectura para G1
     encoder_name1: "resnet34"
-    arch2: "FPN"             # nombre de la arquitectura para G2
+    arch2: "PSPNet"             # nombre de la arquitectura para G2
     encoder_name2: "resnet34"
 
 train_par:
@@ -14,7 +14,7 @@ train_par:
   profiler: False
 
   # ciclo de entrenamiento
-  epochs: 10
+  epochs: 200
   batch_size: 32
   workers: 8
 
@@ -31,7 +31,7 @@ train_par:
   lambda_semi: 0.2
 
   # semi-supervisión
-  supervised_epochs: 5
+  supervised_epochs: 100
   gamma_thresh: 0.2
 
   # paths y early stopping

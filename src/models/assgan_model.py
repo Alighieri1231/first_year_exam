@@ -290,7 +290,7 @@ class ASSGAN(L.LightningModule):
         dataset_iou = iou_score(tp, fp, fn, tn, reduction="micro")
 
         self.log_dict(
-            {"val_per_image_iou": per_image_iou, "val_dataset_iou": dataset_iou},
+            {"valid_per_image_iou": per_image_iou, "valid_dataset_iou": dataset_iou},
             prog_bar=True,
             sync_dist=True,
         )
