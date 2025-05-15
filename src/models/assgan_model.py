@@ -96,7 +96,7 @@ class ASSGAN(L.LightningModule):
         epoch = self.current_epoch
         imgs_l = batch["image"]  # (B,3,H,W)
         masks_l = batch["mask"].unsqueeze(1)  # (B,1,H,W), values {0,1}
-        # print (f"imgs_l.shape: {imgs_l.shape}, masks_l.shape: {masks_l.shape}")
+        print(f"imgs_l.shape: {imgs_l.shape}, masks_l.shape: {masks_l.shape}")
 
         opt_g, opt_d = self.optimizers()
 
