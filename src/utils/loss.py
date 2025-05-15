@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import torch.nn as nn
 from torchvision.ops import sigmoid_focal_loss
 
-import utils
+from src.utils.utils import *
 
 
 def BCELogitsLoss(y_hat, y, weight=None):
