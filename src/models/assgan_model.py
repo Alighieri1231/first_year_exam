@@ -197,27 +197,23 @@ class ASSGAN(L.LightningModule):
 
         # real masks → target = 1
         real_prob = masks_l  # already 0/1
-        loss_d_real = self.adv_loss(
-            self.discriminator(real_prob), torch.ones_like(real_prob)
-        )
+        score_real = self.discriminator(real_prob)  # (B,1,H,W)
+        loss_d_real = self.adv_loss(score_real, torch.ones_like(score_real))
 
         # fake masks from G1/G2 → target = 0
 
-        loss_d_f1 = self.adv_loss(
-            self.discriminator(prob1.detach()), torch.zeros_like(prob1)
-        )
-        loss_d_f2 = self.adv_loss(
-            self.discriminator(prob2.detach()), torch.zeros_like(prob2)
-        )
+        score_f1 = self.discriminator(prob1.detach())
+        score_f2 = self.discriminator(prob2.detach())
+
+        loss_d_f1 = self.adv_loss(score_f1, torch.zeros_like(score_f1))
+        loss_d_f2 = self.adv_loss(score_f2, torch.zeros_like(score_f2))
 
         # fake on unlabeled if used
         if epoch >= self.supervised_epochs and adv1_u != 0.0:
-            loss_d_u1 = self.adv_loss(
-                self.discriminator(prob1_u.detach()), torch.zeros_like(prob1_u)
-            )
-            loss_d_u2 = self.adv_loss(
-                self.discriminator(prob2_u.detach()), torch.zeros_like(prob2_u)
-            )
+            score_d_u1 = self.discriminator(prob1_u.detach())
+            score_d_u2 = self.discriminator(prob2_u.detach())
+            loss_d_u1 = self.adv_loss(score_d_u1, torch.zeros_like(score_d_u1))
+            loss_d_u2 = self.adv_loss(score_d_u2, torch.zeros_like(score_d_u2))
             total_d = loss_d_real + loss_d_f1 + loss_d_f2 + loss_d_u1 + loss_d_u2
             d_loss = total_d / 5.0
         else:
