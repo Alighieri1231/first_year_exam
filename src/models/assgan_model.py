@@ -5,7 +5,7 @@ import torch.optim as optim
 import lightning as L
 import segmentation_models_pytorch as smp
 
-from gan_modules import Discriminator, FCDiscriminator
+from modules.gan_modules import Discriminator, FCDiscriminator
 
 # ──────── LOSS DEFINITION ────────
 # Option A: your original 2d‐masks + wrappers
