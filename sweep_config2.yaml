@@ -15,7 +15,7 @@ parameters:
   encoder_name:
     values: ["mit_b1", "resnet34"]  # Lista de opciones para el encoder
   arch:
-    values: ["unet"]  # Arquitecturas posibles
+    values: ["unetplusplus"]  # Arquitecturas posibles
   optimizer:
     values: ["adam", "adamw","sgd"]  # Tipos de optimizadores a probar
   scheduler:
