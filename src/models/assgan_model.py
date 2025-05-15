@@ -5,11 +5,11 @@ import torch.optim as optim
 import lightning as L
 import segmentation_models_pytorch as smp
 
-from models.modules.gan_modules import Discriminator, FCDiscriminator
+from src.models.modules.gan_modules import Discriminator, FCDiscriminator
 
 # ──────── LOSS DEFINITION ────────
 # Option A: your original 2d‐masks + wrappers
-from utils.loss import CrossEntropy2d, BCEWithLogitsLoss2d
+from src.utils.loss import CrossEntropy2d, BCEWithLogitsLoss2d
 
 # Option B: pure PyTorch (commented out)
 # from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss
