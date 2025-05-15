@@ -116,8 +116,11 @@ class ASSGAN(L.LightningModule):
         # 3) adversarial “fake” loss  → we want D(sigmoid(pred)) ≈ 1
         prob1 = torch.sigmoid(pred1)
         prob2 = torch.sigmoid(pred2)
-        adv1_l = self.adv_loss(self.discriminator(prob1), torch.ones_like(prob1))
-        adv2_l = self.adv_loss(self.discriminator(prob2), torch.ones_like(prob2))
+
+        score1 = self.discriminator(prob1)  # (B,1,H,W)
+        score2 = self.discriminator(prob2)
+        adv1_l = self.adv_loss(score1, torch.ones_like(score1))
+        adv2_l = self.adv_loss(score2, torch.ones_like(score2))
 
         # optional: unlabeled adversarial
         adv1_u = adv2_u = 0.0
@@ -144,13 +147,12 @@ class ASSGAN(L.LightningModule):
             prob1_u = torch.sigmoid(pred1_u)
             prob2_u = torch.sigmoid(pred2_u)
 
+            score1_u = self.discriminator(prob1_u)
+            score2_u = self.discriminator(prob2_u)
+
             # 3) adversarial on unlabeled
-            adv1_u = self.adv_loss(
-                self.discriminator(prob1_u), torch.ones_like(prob1_u)
-            )
-            adv2_u = self.adv_loss(
-                self.discriminator(prob2_u), torch.ones_like(prob2_u)
-            )
+            adv1_u = self.adv_loss(score1_u, torch.zeros_like(score1_u))
+            adv2_u = self.adv_loss(score2_u, torch.zeros_like(score2_u))
 
             # 4) pseudo‐label mutual supervision (Alg 2)
             # discriminator’s confidence
@@ -200,6 +202,7 @@ class ASSGAN(L.LightningModule):
         )
 
         # fake masks from G1/G2 → target = 0
+
         loss_d_f1 = self.adv_loss(
             self.discriminator(prob1.detach()), torch.zeros_like(prob1)
         )
