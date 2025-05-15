@@ -502,7 +502,7 @@ class BCEWithLogitsLoss2d(nn.Module):
         assert predict.dim() == 4
         assert target.dim() == 4
         n, c, h, w = predict.size()
-        print (f"predict.shape: {predict.shape}, target.shape: {target.shape}")
+        #print (f"predict.shape: {predict.shape}, target.shape: {target.shape}")
         target_mask = (target >= 0) & (target != self.ignore_label)
         target = target[target_mask]
         if not target.dim():
