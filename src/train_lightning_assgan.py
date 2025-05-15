@@ -82,12 +82,12 @@ if __name__ == "__main__":
 
     # Configuración de logging y callbacks
     wandb_logger = WandbLogger(project="first_year", entity="ia-lim", config=conf)
-    early_stop_callback = EarlyStopping(
-        monitor="valid_dataset_iou", patience=10, mode="max"
-    )
-    model_checkpoint = ModelCheckpoint(
-        monitor="valid_dataset_iou", mode="max", save_top_k=1, save_last=True
-    )
+    # early_stop_callback = EarlyStopping(
+    #     monitor="valid_dataset_iou", patience=10, mode="max"
+    # )
+    # model_checkpoint = ModelCheckpoint(
+    #     monitor="valid_dataset_iou", mode="max", save_top_k=1, save_last=True
+    # )
 
     # lightning_model = MyModel(model_opts=conf.model_opts, train_par=conf.train_par)
     model = USModel(model_opts=conf.model_opts, train_par=conf.train_par)
@@ -99,7 +99,7 @@ if __name__ == "__main__":
         strategy=conf.train_par.strategy,
         logger=wandb_logger,
         profiler=conf.train_par.profiler,
-        callbacks=[early_stop_callback, model_checkpoint],
+        # callbacks=[early_stop_callback, model_checkpoint],
         precision="bf16-mixed",
     )
     # deterministic=True,
@@ -108,9 +108,9 @@ if __name__ == "__main__":
     # Entrenar modelo
     trainer.fit(model, datamodule=data_module)
 
-    print(f"Best model path: {model_checkpoint.best_model_path}")
+    # print(f"Best model path: {model_checkpoint.best_model_path}")
     #   TEST FINAL
     trainer.test(model=model, datamodule=data_module)
 
     # GUARDAR OVERLAYS DE TEST
-    model.save_test_overlays(data_module, results_path, "test")
+    # model.save_test_overlays(data_module, results_path, "test")
