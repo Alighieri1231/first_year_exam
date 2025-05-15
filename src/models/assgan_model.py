@@ -37,6 +37,18 @@ class ASSGAN(L.LightningModule):
             encoder_weights="imagenet",
         )
 
+        # Preprocessors for each generator
+        params1 = smp.encoders.get_preprocessing_params(model_opts.args.encoder_name1)
+        params2 = smp.encoders.get_preprocessing_params(model_opts.args.encoder_name2)
+
+        # register buffer for each generator like
+        # self.register_buffer("std", torch.tensor(params["std"]).view(1, 3, 1, 1))
+        # self.register_buffer("mean", torch.tensor(params["mean"]).view(1, 3, 1, 1))
+
+        self.register_buffer("std1", torch.tensor(params1["std"]).view(1, 3, 1, 1))
+        self.register_buffer("mean1", torch.tensor(params1["mean"]).view(1, 3, 1, 1))
+        self.register_buffer("std2", torch.tensor(params2["std"]).view(1, 3, 1, 1))
+        self.register_buffer("mean2", torch.tensor(params2["mean"]).view(1, 3, 1, 1))
         # — Discriminator (takes 1‐channel probability maps) —
         self.discriminator = FCDiscriminator(num_classes=1)
 
@@ -70,10 +82,21 @@ class ASSGAN(L.LightningModule):
     def forward(self, x):
         raise NotImplementedError("Use training_step to control G/D separately")
 
+    def processg1(self, x):
+        # Preprocess for generator 1
+        x = (x - self.mean1) / self.std1
+        return x
+
+    def processg2(self, x):
+        # Preprocess for generator 2
+        x = (x - self.mean2) / self.std2
+        return x
+
     def training_step(self, batch, batch_idx):
         epoch = self.current_epoch
         imgs_l = batch["image"]  # (B,3,H,W)
         masks_l = batch["mask"].unsqueeze(1)  # (B,1,H,W), values {0,1}
+        # print (f"imgs_l.shape: {imgs_l.shape}, masks_l.shape: {masks_l.shape}")
 
         opt_g, opt_d = self.optimizers()
 

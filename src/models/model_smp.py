@@ -229,7 +229,12 @@ class USModel(L.LightningModule):
         print(f"Overlays guardados en: {overlay_path}")
 
     def log_test_images(
-        self, data_module, threshold=0.4, val_iou=None, only_roi_frames=False,num_images=10
+        self,
+        data_module,
+        threshold=0.4,
+        val_iou=None,
+        only_roi_frames=False,
+        num_images=10,
     ):
         if val_iou is None or val_iou <= threshold:
             print(f"No se loggearán imágenes porque val_iou ({val_iou}) ≤ {threshold}")
