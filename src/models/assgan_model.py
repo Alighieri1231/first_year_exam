@@ -9,6 +9,8 @@ from src.models.modules.gan_modules import Discriminator, FCDiscriminator
 import numpy as np
 import os
 import cv2
+import wandb
+import matplotlib.pyplot as plt
 
 # ──────── LOSS DEFINITION ────────
 # Option A: your original 2d‐masks + wrappers
@@ -377,6 +379,82 @@ class ASSGAN(L.LightningModule):
                         )
 
         print(f"Saved test overlays for G1/G2 under {results_path}")
+
+    def log_ctest_images(
+        self,
+        data_module,
+        threshold=0.4,
+        val_iou=None,
+        only_roi_frames=False,
+        num_images=10,
+    ):
+        # No loguear si la validación no cumple el umbral
+        if val_iou is None or val_iou <= threshold:
+            print(f"No se loggearán imágenes porque val_iou ({val_iou}) ≤ {threshold}")
+            return
+
+        self.eval()
+        device = self.device
+        # tomamos una pequeña muestra del test
+        full_loader = data_module.test_dataloader()
+        indices = np.random.choice(
+            len(full_loader.dataset),
+            size=min(num_images, len(full_loader.dataset)),
+            replace=False,
+        )
+        subset = torch.utils.data.Subset(full_loader.dataset, indices)
+        loader = torch.utils.data.DataLoader(
+            subset, batch_size=1, shuffle=False, num_workers=4, pin_memory=True
+        )
+
+        wandb_images = []
+        with torch.no_grad():
+            for batch in loader:
+                img = batch["image"].to(device)  # (1,3,H,W)
+                gt = batch["mask"].to(device)  # (1,H,W)
+                # preprocesos y forward G1/G2
+                logits1 = self.generator1(self.processg1(img))
+                logits2 = self.generator2(self.processg2(img))
+                prob1 = torch.sigmoid(logits1) > 0.5
+                prob2 = torch.sigmoid(logits2) > 0.5
+
+                # sacamos numpy para plotting
+                img_np = img[0].cpu().numpy().transpose(1, 2, 0)
+                # invertimos standarización
+                mean = self.mean1.cpu().numpy().squeeze()
+                std = self.std1.cpu().numpy().squeeze()
+                img_np = np.clip((img_np * std + mean) * 255, 0, 255).astype(np.uint8)
+                gt_np = gt[0].cpu().numpy().squeeze()
+                p1_np = prob1[0].cpu().numpy().squeeze().astype(np.uint8)
+                p2_np = prob2[0].cpu().numpy().squeeze().astype(np.uint8)
+
+                # saltarnos imágenes sin ROI si queremos
+                if only_roi_frames and gt_np.max() == 0:
+                    continue
+
+                # montar figura 1×4
+                fig, axs = plt.subplots(1, 4, figsize=(16, 4))
+                axs[0].imshow(img_np, cmap="gray")
+                axs[0].set_title("Imagen")
+                axs[1].imshow(gt_np, cmap="gray")
+                axs[1].set_title("GT")
+                axs[2].imshow(p1_np, cmap="gray")
+                axs[2].set_title("G1")
+                axs[3].imshow(p2_np, cmap="gray")
+                axs[3].set_title("G2")
+                for ax in axs:
+                    ax.axis("off")
+                plt.tight_layout()
+
+                wandb_images.append(
+                    wandb.Image(fig, caption=f"Ejemplo {len(wandb_images) + 1}")
+                )
+                plt.close(fig)
+
+        if wandb_images:
+            wandb.log({"test_examples_G1_G2": wandb_images})
+        else:
+            print("No se encontraron imágenes con máscara para loggear.")
 
     def configure_optimizers(self):
         opt_g = optim.Adam(

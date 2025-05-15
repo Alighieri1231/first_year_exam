@@ -89,6 +89,15 @@ if __name__ == "__main__":
     #     monitor="valid_dataset_iou", mode="max", save_top_k=1, save_last=True
     # )
 
+    checkpoint = ModelCheckpoint(
+        monitor="val_dataset_iou",
+        mode="max",
+        save_top_k=1,
+        save_last=True,
+        dirpath=os.path.join(conf.train_par.results_path, conf.dataset.experiment),
+        filename="assgan-{epoch:03d}-{val_dataset_iou:.4f}",
+    )
+
     # lightning_model = MyModel(model_opts=conf.model_opts, train_par=conf.train_par)
     model = USModel(model_opts=conf.model_opts, train_par=conf.train_par)
     # Configurar el entrenador con los valores optimizados
@@ -114,3 +123,35 @@ if __name__ == "__main__":
 
     # GUARDAR OVERLAYS DE TEST
     # model.save_test_overlays(data_module, results_path, "test")
+    # 3) cargar el mejor modelo y validar de nuevo
+    best_path = checkpoint.best_model_path
+    if best_path:
+        print("Best ckpt:", best_path)
+        best_model = USModel.load_from_checkpoint(
+            best_path,
+            model_opts=conf.model_opts,
+            train_par=conf.train_par,
+        )
+        # validar
+        val_metrics = trainer.validate(
+            best_model, datamodule=data_module, verbose=False
+        )
+        val_iou = val_metrics[0]["val_dataset_iou"]
+        # loggeo en wandb
+        wandb.log({"valid_dataset_iou (best)": val_iou})
+
+        # 4) si supera el umbral, loggear ejemplos de test
+        if val_iou > 0.4:
+            best_model.log_ctest_images(
+                data_module,
+                threshold=0.4,
+                val_iou=val_iou,
+                only_roi_frames=True,
+                num_images=10,
+            )
+
+    else:
+        print("No se encontró ningún checkpoint guardado.")
+
+    # cerrar WandB
+    wandb.finish()
