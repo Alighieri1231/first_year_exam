@@ -150,47 +150,62 @@ class ASSGAN(L.LightningModule):
             score1_u = self.discriminator(prob1_u)
             score2_u = self.discriminator(prob2_u)
 
-            # 3) adversarial on unlabeled
-            adv1_u = self.adv_loss(score1_u, torch.zeros_like(score1_u))
-            adv2_u = self.adv_loss(score2_u, torch.zeros_like(score2_u))
-
             # 4) pseudo‐label mutual supervision (Alg 2)
             # discriminator’s confidence
-            conf1 = torch.sigmoid(self.discriminator(prob1_u))  # (B,1,H,W)
-            conf2 = torch.sigmoid(self.discriminator(prob2_u))
+            conf1 = torch.sigmoid(score1_u).detach()  # (B,1,H,W)
+            conf2 = torch.sigmoid(score2_u).detach()  # (B,1,H,W)
 
             # masks of “trusted” pixels
             mask1 = (conf1 > self.gamma_thresh).float()
             mask2 = (conf2 > self.gamma_thresh).float()
 
-            # hard pseudo‐labels
-            pseudo1 = (prob1_u > 0.5).float()
-            pseudo2 = (prob2_u > 0.5).float()
+            # — ADVERSARIAL UNLABELED CRUZADO —
+            # G2 trata como “reales” solo los parches que D aprobó de G1
+            target2_adv = torch.ones_like(score2_u)
+            target2_adv[mask1 == 0] = 255  # 255 = ignore en BCEWithLogitsLoss2d
+            adv2_u = self.lambda_adv_u * self.adv_loss(score2_u, target2_adv)
 
-            # supervise G₂ where mask1==1 using G₁’s pseudo
-            if mask1.sum() > 0:
-                target2 = pseudo1.clone()
-                target2[mask1 == 0] = 255
-                semi2 = self.lambda_semi * self.seg_loss(pred2_u, target2)
+            # G1 trata como “reales” solo los parches que D aprobó de G2
+            target1_adv = torch.ones_like(score1_u)
+            target1_adv[mask2 == 0] = 255
+            adv1_u = self.lambda_adv_u * self.adv_loss(score1_u, target1_adv)
 
-            # supervise G₁ where mask2==1 using G₂’s pseudo
-            if mask2.sum() > 0:
-                target1 = pseudo2.clone()
-                target1[mask2 == 0] = 255
-                semi1 = self.lambda_semi * self.seg_loss(pred1_u, target1)
+            # — PSEUDO‐LABEL MUTUAL SUPERVISION (Alg. 2) CRUZADO —
+            pseudo1 = (prob1_u > 0.5).float()  # pseudo‐GT de G1 (0/1) full-res
+            pseudo2 = (prob2_u > 0.5).float()  # pseudo‐GT de G2
 
+            # Target para G2: la pseudo‐máscara de G1, ignorando donde D NO la aprobó
+            target2_semi = pseudo1.clone()
+            # Primero expandimos mask1 a full-res:
+            scale = pred1_u.shape[-1] // mask1.shape[-1]  # ej. 320//10=32
+            mask1_full = mask1.repeat_interleave(scale, 2).repeat_interleave(scale, 3)
+            target2_semi[mask1_full == 0] = 255
+            semi2 = self.lambda_semi * self.seg_loss(pred2_u, target2_semi)
+
+            # Target para G1: la pseudo‐máscara de G2, ignorando donde D NO la aprobó
+            target1_semi = pseudo2.clone()
+            mask2_full = mask2.repeat_interleave(scale, 2).repeat_interleave(scale, 3)
+            target1_semi[mask2_full == 0] = 255
+            semi1 = self.lambda_semi * self.seg_loss(pred1_u, target1_semi)
         # combine G losses
         g_loss = (
             self.lambda_seg * (loss_seg1 + loss_seg2)
             + self.lambda_adv * (adv1_l + adv2_l + adv1_u + adv2_u)
-            + (semi1 + semi2)
+            + self.lambda_semi(semi1 + semi2)
         )
 
         self.manual_backward(g_loss)
         opt_g.step()
         opt_g.zero_grad()
         self.untoggle_optimizer(opt_g)
-        self.log("train/loss_g", g_loss, prog_bar=True)
+        self.log(
+            "train/loss_g",
+            g_loss,
+            on_step=True,  # loguea cada paso
+            on_epoch=False,  # y también agrupa en el cierre de cada epoch
+            prog_bar=True,  # lo ves en la barra de progreso
+            sync_dist=True,  # necesario en DDP para que sólo rank0 escriba
+        )
 
         # ─── DISCRIMINATOR STEP ───
         self.toggle_optimizer(opt_d)
@@ -224,7 +239,14 @@ class ASSGAN(L.LightningModule):
         opt_d.step()
         opt_d.zero_grad()
         self.untoggle_optimizer(opt_d)
-        self.log("train/loss_d", d_loss, prog_bar=True)
+        self.log(
+            "train/loss_d",
+            d_loss,
+            on_step=True,
+            on_epoch=False,
+            prog_bar=True,
+            sync_dist=True,
+        )
 
     def configure_optimizers(self):
         opt_g = optim.Adam(
