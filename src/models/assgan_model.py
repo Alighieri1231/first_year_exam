@@ -96,7 +96,7 @@ class ASSGAN(L.LightningModule):
         epoch = self.current_epoch
         imgs_l = batch["image"]  # (B,3,H,W)
         masks_l = batch["mask"].unsqueeze(1)  # (B,1,H,W), values {0,1}
-        print(f"imgs_l.shape: {imgs_l.shape}, masks_l.shape: {masks_l.shape}")
+        # print(f"imgs_l.shape: {imgs_l.shape}, masks_l.shape: {masks_l.shape}")
 
         opt_g, opt_d = self.optimizers()
 
@@ -107,7 +107,7 @@ class ASSGAN(L.LightningModule):
 
         # 1) forward
         pred1 = self.generator1(self.processg1(imgs_l))  # (B,1,H,W) logits
-        pred2 = self.generator2(imgs_l)
+        pred2 = self.generator2(self.processg2(imgs_l))
 
         # 2) segmentation loss on labeled
         loss_seg1 = self.seg_loss(pred1, masks_l)
@@ -139,8 +139,8 @@ class ASSGAN(L.LightningModule):
 
             imgs_u = unlab["image"]  # (B,3,H,W)
             # forward G on unlabeled
-            pred1_u = self.generator1(imgs_u)
-            pred2_u = self.generator2(imgs_u)
+            pred1_u = self.generator1(self.processg1(imgs_u))
+            pred2_u = self.generator2(self.processg2(imgs_u))
             prob1_u = torch.sigmoid(pred1_u)
             prob2_u = torch.sigmoid(pred2_u)
 
