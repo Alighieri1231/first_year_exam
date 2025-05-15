@@ -106,7 +106,7 @@ class ASSGAN(L.LightningModule):
         # Supervised training
 
         # 1) forward
-        pred1 = self.generator1(imgs_l)  # (B,1,H,W) logits
+        pred1 = self.generator1(self.processg1(imgs_l))  # (B,1,H,W) logits
         pred2 = self.generator2(imgs_l)
 
         # 2) segmentation loss on labeled
