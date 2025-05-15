@@ -6,6 +6,9 @@ import lightning as L
 import segmentation_models_pytorch as smp
 from segmentation_models_pytorch.metrics import get_stats, iou_score, f1_score, accuracy
 from src.models.modules.gan_modules import Discriminator, FCDiscriminator
+import numpy as np
+import os
+import cv2
 
 # ──────── LOSS DEFINITION ────────
 # Option A: your original 2d‐masks + wrappers
@@ -255,25 +258,21 @@ class ASSGAN(L.LightningModule):
         )
 
     def _shared_eval_step(self, batch, stage: str):
-        """Evalúa un batch: hace forward con G1 y G2, promedia y calcula stats."""
+        """Hace forward con G1 y G2, promedia y saca tp/fp/fn/tn."""
         imgs = batch["image"]
-        masks = batch["mask"].unsqueeze(1).long()  # (B,1,H,W) en {0,1}
+        masks = batch["mask"].unsqueeze(1).long()  # (B,1,H,W)
 
-        # Forward de ambos generadores (solo segmentación supervisada)
+        # Normalización y forward
         p1 = self.generator1(self.processg1(imgs))
         p2 = self.generator2(self.processg2(imgs))
 
-        # probabilidades y predicción promedio
         prob1 = torch.sigmoid(p1)
         prob2 = torch.sigmoid(p2)
         prob_avg = 0.5 * (prob1 + prob2)
 
-        # threshold → máscara binaria
         pred_mask = (prob_avg > 0.5).long()
 
-        # Calcula stats por imagen
         tp, fp, fn, tn = get_stats(pred_mask, masks, mode="binary")
-
         return {"tp": tp, "fp": fp, "fn": fn, "tn": tn}
 
     def validation_step(self, batch, batch_idx):
@@ -282,22 +281,20 @@ class ASSGAN(L.LightningModule):
         return out
 
     def on_validation_epoch_end(self):
-        # concatena todas las stats
         tp = torch.cat([x["tp"] for x in self.validation_step_outputs])
         fp = torch.cat([x["fp"] for x in self.validation_step_outputs])
         fn = torch.cat([x["fn"] for x in self.validation_step_outputs])
         tn = torch.cat([x["tn"] for x in self.validation_step_outputs])
 
-        # métricas
-        iou = iou_score(tp, fp, fn, tn, reduction="micro-imagewise")
-        acc = accuracy(tp, fp, fn, tn, reduction="micro-imagewise")
-        f1 = f1_score(tp, fp, fn, tn, reduction="micro-imagewise")
+        per_image_iou = iou_score(tp, fp, fn, tn, reduction="micro-imagewise")
+        dataset_iou = iou_score(tp, fp, fn, tn, reduction="micro")
 
-        self.log("val/iou", iou, prog_bar=True, sync_dist=True)
-        self.log("val/acc", acc, prog_bar=True, sync_dist=True)
-        self.log("val/f1", f1, prog_bar=True, sync_dist=True)
+        self.log_dict(
+            {"val_per_image_iou": per_image_iou, "val_dataset_iou": dataset_iou},
+            prog_bar=True,
+            sync_dist=True,
+        )
 
-        # limpia buffer
         self.validation_step_outputs.clear()
 
     def test_step(self, batch, batch_idx):
@@ -311,15 +308,75 @@ class ASSGAN(L.LightningModule):
         fn = torch.cat([x["fn"] for x in self.test_step_outputs])
         tn = torch.cat([x["tn"] for x in self.test_step_outputs])
 
-        iou = iou_score(tp, fp, fn, tn, reduction="micro-imagewise")
-        acc = accuracy(tp, fp, fn, tn, reduction="micro-imagewise")
-        f1 = f1_score(tp, fp, fn, tn, reduction="micro-imagewise")
+        per_image_iou = iou_score(tp, fp, fn, tn, reduction="micro-imagewise")
+        dataset_iou = iou_score(tp, fp, fn, tn, reduction="micro")
 
-        self.log("test/iou", iou, prog_bar=True, sync_dist=True)
-        self.log("test/acc", acc, prog_bar=True, sync_dist=True)
-        self.log("test/f1", f1, prog_bar=True, sync_dist=True)
+        self.log_dict(
+            {"test_per_image_iou": per_image_iou, "test_dataset_iou": dataset_iou},
+            prog_bar=True,
+            sync_dist=True,
+        )
 
         self.test_step_outputs.clear()
+
+    def save_test_overlays(self, data_module, results_path, name="test"):
+        """
+        Guarda overlays de test *por separado* para G1 y G2.
+        results_path/   ├─ test_G1/...
+                         └─ test_G2/...
+        """
+        loader = data_module.test_dataloader()
+        self.eval()
+
+        for gen_idx, gen in enumerate([self.generator1, self.generator2], start=1):
+            out_dir = os.path.join(results_path, f"{name}_G{gen_idx}")
+            os.makedirs(out_dir, exist_ok=True)
+
+            with torch.no_grad():
+                for i, batch in enumerate(loader):
+                    img = batch["image"].to(self.device)
+                    gt = batch["mask"].to(self.device)
+
+                    logits = gen(
+                        self.processg1(img) if gen_idx == 1 else self.processg2(img)
+                    )
+                    prob = logits.sigmoid()
+                    pred = (prob > 0.5).float()
+
+                    for j in range(img.size(0)):
+                        # reconstruir imagen  [igual que en USModel.save_test_overlays]
+                        im_np = (
+                            img[j].cpu().numpy().transpose(1, 2, 0)
+                            * self.std1.cpu().numpy().squeeze()
+                            + self.mean1.cpu().numpy().squeeze()
+                        ) * 255
+                        im_np = np.clip(im_np, 0, 255).astype(np.uint8)
+
+                        gt_np = gt[j].cpu().numpy().squeeze()
+                        pred_np = pred[j].cpu().numpy().squeeze()
+
+                        # ignora volúmenes sin ROI si quieres
+                        if gt_np.sum() == 0:
+                            continue
+
+                        # overlay GT y pred
+                        gt_ov = im_np.copy()
+                        gt_ov[gt_np > 0] = (
+                            gt_ov[gt_np > 0] * 0.5 + np.array([0, 255, 0]) * 0.5
+                        ).astype(np.uint8)
+
+                        pr_ov = im_np.copy()
+                        pr_ov[pred_np > 0] = (
+                            pr_ov[pred_np > 0] * 0.5 + np.array([255, 0, 0]) * 0.5
+                        ).astype(np.uint8)
+
+                        combo = np.concatenate([im_np, gt_ov, pr_ov], axis=1)
+                        cv2.imwrite(
+                            os.path.join(out_dir, f"img_{i}_{j}.png"),
+                            cv2.cvtColor(combo, cv2.COLOR_RGB2BGR),
+                        )
+
+        print(f"Saved test overlays for G1/G2 under {results_path}")
 
     def configure_optimizers(self):
         opt_g = optim.Adam(

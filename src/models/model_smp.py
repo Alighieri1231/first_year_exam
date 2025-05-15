@@ -228,7 +228,7 @@ class USModel(L.LightningModule):
 
         print(f"Overlays guardados en: {overlay_path}")
 
-    def log_test_images(
+    def log_ctest_images(
         self,
         data_module,
         threshold=0.4,
