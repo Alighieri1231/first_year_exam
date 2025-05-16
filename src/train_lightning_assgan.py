@@ -77,9 +77,9 @@ if __name__ == "__main__":
     # Configuración de logging y callbacks
     # wandb_logger = WandbLogger(project="first_year_exam", entity="ia-lim", config=conf)
 
-    wandb_logger = WandbLogger(project="first_year_exam", entity="ia-lim")
+    wandb_logger = WandbLogger(project="first_year_exam", entity="ia-lim", config=conf)
     # actualiza el config existente
-    wandb_logger.experiment.config.update(conf, allow_val_change=True)
+    #wandb_logger.experiment.config.update(conf, allow_val_change=True)
     # early_stop_callback = EarlyStopping(
     #     monitor="valid_dataset_iou", patience=10, mode="max"
     # )

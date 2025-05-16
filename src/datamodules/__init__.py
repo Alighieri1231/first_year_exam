@@ -1,4 +1,3 @@
-from src.datamodules.glue_datamodule import GLUEDataModule
-from src.datamodules.mnist_datamodule import MNISTDataModule
+from src.datamodules.data_datamodule_seg import WSIDataModule
 
-__all__ = ["GLUEDataModule", "MNISTDataModule"]
+__all__ = ["WSIDataModule"]

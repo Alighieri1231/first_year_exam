@@ -1,4 +1,3 @@
-from .glue_transformer import GLUETransformer
-from .mnist_model import MNISTModel
+from .assgan_model import ASSGAN
 
-__all__ = ["GLUETransformer", "MNISTModel"]
+__all__ = ["ASSGAN"]
