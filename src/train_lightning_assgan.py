@@ -37,6 +37,7 @@ if __name__ == "__main__":
     conf = Dict(yaml.safe_load(open(args.config_file, "r")))
 
     wandb.init(project="first_year_exam", entity="ia-lim", config=conf)
+    #
 
     torch.set_float32_matmul_precision("medium")
     data_dir = conf.dataset.data_dir
