@@ -19,8 +19,8 @@ train_par:
   workers: 8
 
   # tasas de aprendizaje y regularización (G y D)
-  lr_g: 0.001
-  lr_d: 0.001
+  lr_g: 0.0001
+  lr_d: 0.0001
   weight_decay: 0.001
   adam_betas: [0.9, 0.9]
 
@@ -38,7 +38,7 @@ train_par:
   results_path: "/data/GitHub/first_year_exam/results"
   early_stopping:
     monitor: "valid_dataset_iou"
-    patience: 10
+    patience: 20
     mode: "max"
 
 dataset:

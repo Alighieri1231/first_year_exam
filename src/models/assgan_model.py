@@ -291,8 +291,16 @@ class ASSGAN(L.LightningModule):
         per_image_iou = iou_score(tp, fp, fn, tn, reduction="micro-imagewise")
         dataset_iou = iou_score(tp, fp, fn, tn, reduction="micro")
 
+        per_image_f1 = f1_score(tp, fp, fn, tn, reduction="micro-imagewise")
+        dataset_f1 = f1_score(tp, fp, fn, tn, reduction="micro")
+
+        per_image_acc = accuracy(tp, fp, fn, tn, reduction="micro-imagewise")
+        dataset_acc = accuracy(tp, fp, fn, tn, reduction="micro")
+
         self.log_dict(
-            {"valid_per_image_iou": per_image_iou, "valid_dataset_iou": dataset_iou},
+            {"valid_per_image_iou": per_image_iou, "valid_dataset_iou": dataset_iou,
+             "valid_per_image_f1": per_image_f1, "valid_dataset_f1": dataset_f1,
+             "valid_per_image_acc": per_image_acc, "valid_dataset_acc": dataset_acc},
             prog_bar=True,
             sync_dist=True,
         )
@@ -313,8 +321,16 @@ class ASSGAN(L.LightningModule):
         per_image_iou = iou_score(tp, fp, fn, tn, reduction="micro-imagewise")
         dataset_iou = iou_score(tp, fp, fn, tn, reduction="micro")
 
+        per_image_f1 = f1_score(tp, fp, fn, tn, reduction="micro-imagewise")
+        dataset_f1 = f1_score(tp, fp, fn, tn, reduction="micro")
+
+        per_image_acc = accuracy(tp, fp, fn, tn, reduction="micro-imagewise")
+        dataset_acc = accuracy(tp, fp, fn, tn, reduction="micro")
+
         self.log_dict(
-            {"test_per_image_iou": per_image_iou, "test_dataset_iou": dataset_iou},
+            {"test_per_image_iou": per_image_iou, "test_dataset_iou": dataset_iou,
+             "test_per_image_f1": per_image_f1, "test_dataset_f1": dataset_f1,
+             "test_per_image_acc": per_image_acc, "test_dataset_acc": dataset_acc},
             prog_bar=True,
             sync_dist=True,
         )
@@ -421,9 +437,17 @@ class ASSGAN(L.LightningModule):
                 # sacamos numpy para plotting
                 img_np = img[0].cpu().numpy().transpose(1, 2, 0)
                 # invertimos standarización
-                mean = self.mean1.cpu().numpy().squeeze()
-                std = self.std1.cpu().numpy().squeeze()
-                img_np = np.clip((img_np * std + mean) * 255, 0, 255).astype(np.uint8)
+                                    # Verificar si es imagen en escala de grises (1 canal)
+                if img_np.shape[-1] == 1:
+                    img_np = img_np.squeeze(-1)  # Convertir (H, W, 1) a (H, W)
+
+                # Ajustar rango de valores si están entre -1 y 1
+                if img_np.min() < 0:
+                    img_np = (img_np + 1) / 2.0  # Rango de [-1,1] a [0,1]
+
+                # Convertir al rango de 0 a 255
+                img_np = (img_np * 255).astype(np.uint8)
+
                 gt_np = gt[0].cpu().numpy().squeeze()
                 p1_np = prob1[0].cpu().numpy().squeeze().astype(np.uint8)
                 p2_np = prob2[0].cpu().numpy().squeeze().astype(np.uint8)

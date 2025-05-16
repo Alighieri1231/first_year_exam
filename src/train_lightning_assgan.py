@@ -37,6 +37,8 @@ if __name__ == "__main__":
     conf = Dict(yaml.safe_load(open(args.config_file, "r")))
 
     # torch.backends.cudnn.benchmark = True
+    wandb.init()
+
     torch.set_float32_matmul_precision("medium")
     data_dir = conf.dataset.data_dir
     train_file = conf.dataset.train
@@ -81,7 +83,7 @@ if __name__ == "__main__":
     seed_everything(seed=2024, workers=True)
 
     # Configuración de logging y callbacks
-    wandb_logger = WandbLogger(project="first_year", entity="ia-lim", config=conf)
+    wandb_logger = WandbLogger(project="first_year_exam", entity="ia-lim", config=conf)
     # early_stop_callback = EarlyStopping(
     #     monitor="valid_dataset_iou", patience=10, mode="max"
     # )
@@ -90,7 +92,7 @@ if __name__ == "__main__":
     # )
 
     checkpoint = ModelCheckpoint(
-        monitor="val_dataset_iou",
+        monitor="valid_dataset_iou",
         mode="max",
         save_top_k=1,
         save_last=True,
@@ -108,7 +110,7 @@ if __name__ == "__main__":
         strategy=conf.train_par.strategy,
         logger=wandb_logger,
         profiler=conf.train_par.profiler,
-        # callbacks=[early_stop_callback, model_checkpoint],
+        callbacks=[checkpoint],
         precision="bf16-mixed",
     )
     # deterministic=True,
@@ -120,6 +122,8 @@ if __name__ == "__main__":
     # print(f"Best model path: {model_checkpoint.best_model_path}")
     #   TEST FINAL
     trainer.test(model=model, datamodule=data_module)
+    test_metrics = trainer.test(model=model, datamodule=data_module)
+
 
     # GUARDAR OVERLAYS DE TEST
     # model.save_test_overlays(data_module, results_path, "test")
@@ -136,9 +140,9 @@ if __name__ == "__main__":
         val_metrics = trainer.validate(
             best_model, datamodule=data_module, verbose=False
         )
-        val_iou = val_metrics[0]["val_dataset_iou"]
+        val_iou = val_metrics[0]["valid_dataset_iou"]
         # loggeo en wandb
-        wandb.log({"valid_dataset_iou (best)": val_iou})
+        #wandb.log({"valid_dataset_iou (best)": val_iou})
 
         # 4) si supera el umbral, loggear ejemplos de test
         if val_iou > 0.4:
