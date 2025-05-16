@@ -11,6 +11,7 @@ import os
 import cv2
 import wandb
 import matplotlib.pyplot as plt
+from torch.optim.lr_scheduler import PolynomialLR
 
 # ──────── LOSS DEFINITION ────────
 # Option A: your original 2d‐masks + wrappers
@@ -74,6 +75,7 @@ class ASSGAN(L.LightningModule):
         self.lr_d = train_par.lr_d
         self.weight_decay = train_par.weight_decay
         self.adam_betas = (0.9, 0.9)
+        self.poly_power = train_par.polynomial_power
         self.lambda_seg = train_par.lambda_seg
         self.lambda_adv = train_par.lambda_adv
         self.lambda_adv_u = train_par.lambda_adv_u  # weight for unlabeled adv loss
@@ -298,9 +300,14 @@ class ASSGAN(L.LightningModule):
         dataset_acc = accuracy(tp, fp, fn, tn, reduction="micro")
 
         self.log_dict(
-            {"valid_per_image_iou": per_image_iou, "valid_dataset_iou": dataset_iou,
-             "valid_per_image_f1": per_image_f1, "valid_dataset_f1": dataset_f1,
-             "valid_per_image_acc": per_image_acc, "valid_dataset_acc": dataset_acc},
+            {
+                "valid_per_image_iou": per_image_iou,
+                "valid_dataset_iou": dataset_iou,
+                "valid_per_image_f1": per_image_f1,
+                "valid_dataset_f1": dataset_f1,
+                "valid_per_image_acc": per_image_acc,
+                "valid_dataset_acc": dataset_acc,
+            },
             prog_bar=True,
             sync_dist=True,
         )
@@ -328,9 +335,14 @@ class ASSGAN(L.LightningModule):
         dataset_acc = accuracy(tp, fp, fn, tn, reduction="micro")
 
         self.log_dict(
-            {"test_per_image_iou": per_image_iou, "test_dataset_iou": dataset_iou,
-             "test_per_image_f1": per_image_f1, "test_dataset_f1": dataset_f1,
-             "test_per_image_acc": per_image_acc, "test_dataset_acc": dataset_acc},
+            {
+                "test_per_image_iou": per_image_iou,
+                "test_dataset_iou": dataset_iou,
+                "test_per_image_f1": per_image_f1,
+                "test_dataset_f1": dataset_f1,
+                "test_per_image_acc": per_image_acc,
+                "test_dataset_acc": dataset_acc,
+            },
             prog_bar=True,
             sync_dist=True,
         )
@@ -437,7 +449,7 @@ class ASSGAN(L.LightningModule):
                 # sacamos numpy para plotting
                 img_np = img[0].cpu().numpy().transpose(1, 2, 0)
                 # invertimos standarización
-                                    # Verificar si es imagen en escala de grises (1 canal)
+                # Verificar si es imagen en escala de grises (1 canal)
                 if img_np.shape[-1] == 1:
                     img_np = img_np.squeeze(-1)  # Convertir (H, W, 1) a (H, W)
 
@@ -488,7 +500,7 @@ class ASSGAN(L.LightningModule):
         #     weight_decay=self.weight_decay,
         # )
 
-        #Sgd for generator
+        # Sgd for generator
         opt_g = optim.SGD(
             itertools.chain(self.generator1.parameters(), self.generator2.parameters()),
             lr=self.lr_g,
@@ -501,4 +513,22 @@ class ASSGAN(L.LightningModule):
             betas=self.adam_betas,
             weight_decay=self.weight_decay,
         )
-        return [opt_g, opt_d]
+        # 2) Schedulers
+        total_epochs = self.trainer.max_epochs
+        power = self.poly_power
+
+        scheduler_g = {
+            "scheduler": PolynomialLR(opt_g, total_iters=total_epochs, power=power),
+            "interval": "epoch",  # ajustar lr al final de cada época
+            "frequency": 1,
+            "name": "poly_lr_g",
+        }
+        scheduler_d = {
+            "scheduler": PolynomialLR(opt_d, total_iters=total_epochs, power=power),
+            "interval": "epoch",
+            "frequency": 1,
+            "name": "poly_lr_d",
+        }
+
+        # 3) Devolver listas de optimizadores y schedulers
+        return [opt_g, opt_d], [scheduler_g, scheduler_d]
