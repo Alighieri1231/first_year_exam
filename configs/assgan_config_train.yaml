@@ -15,7 +15,7 @@ train_par:
 
   # ciclo de entrenamiento
   epochs: 700
-  batch_size: 32
+  batch_size: 64
   workers: 8
 
   # tasas de aprendizaje y regularización (G y D)
@@ -32,7 +32,7 @@ train_par:
 
   # semi-supervisión
   supervised_epochs: 200
-  gamma_thresh: 0.2
+  gamma_thresh: 0.8 #0.5 #0.2
 
   # paths y early stopping
   results_path: "/data/GitHub/first_year_exam/results"
@@ -44,7 +44,7 @@ train_par:
 dataset:
   experiment: "experiment"
   data_dir: "/data/GitHub/first_year_exam/data/data_uncorrected"
-  train: "/data/GitHub/first_year_exam/data/data_uncorrected/train.csv"
-  dev:   "/data/GitHub/first_year_exam/data/data_uncorrected/validation.csv"
-  test:  "/data/GitHub/first_year_exam/data/data_uncorrected/test.csv"
+  train: "/data/GitHub/first_year_exam/data/data_uncorrected/train.csv" #/data_uncorrected/train.csv"
+  dev: "/data/GitHub/first_year_exam/data/data_uncorrected/validation.csv" #data_uncorrected/validation.csv"
+  test: "/data/GitHub/first_year_exam/data/data_uncorrected/test.csv" #data_uncorrected/test.csv"
   cache_data: False

@@ -33,11 +33,11 @@ if __name__ == "__main__":
     )
 
     args = trainparser.parse_args()
-
+    wandb.init()
     conf = Dict(yaml.safe_load(open(args.config_file, "r")))
 
     # torch.backends.cudnn.benchmark = True
-    wandb.init()
+  
 
     torch.set_float32_matmul_precision("medium")
     data_dir = conf.dataset.data_dir
@@ -97,7 +97,7 @@ if __name__ == "__main__":
         save_top_k=1,
         save_last=True,
         dirpath=os.path.join(conf.train_par.results_path, conf.dataset.experiment),
-        filename="assgan-{epoch:03d}-{val_dataset_iou:.4f}",
+        filename="assgan-{epoch:03d}-{valid_dataset_iou:.4f}",
     )
 
     # lightning_model = MyModel(model_opts=conf.model_opts, train_par=conf.train_par)
@@ -148,10 +148,10 @@ if __name__ == "__main__":
         if val_iou > 0.4:
             best_model.log_ctest_images(
                 data_module,
-                threshold=0.4,
+                threshold=0.2,
                 val_iou=val_iou,
                 only_roi_frames=True,
-                num_images=10,
+                num_images=30,
             )
 
     else:
