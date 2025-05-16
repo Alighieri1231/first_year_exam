@@ -481,10 +481,18 @@ class ASSGAN(L.LightningModule):
             print("No se encontraron imágenes con máscara para loggear.")
 
     def configure_optimizers(self):
-        opt_g = optim.Adam(
+        # opt_g = optim.Adam(
+        #     itertools.chain(self.generator1.parameters(), self.generator2.parameters()),
+        #     lr=self.lr_g,
+        #     betas=self.adam_betas,
+        #     weight_decay=self.weight_decay,
+        # )
+
+        #Sgd for generator
+        opt_g = optim.SGD(
             itertools.chain(self.generator1.parameters(), self.generator2.parameters()),
             lr=self.lr_g,
-            betas=self.adam_betas,
+            momentum=0.9,
             weight_decay=self.weight_decay,
         )
         opt_d = optim.Adam(
