@@ -78,7 +78,9 @@ def main():
     # Configuración de logging y callbacks
     # wandb_logger = WandbLogger(project="first_year_exam", entity="ia-lim", config=conf)
 
-    wandb_logger = WandbLogger(project="first_year_exam", entity="ia-lim", config=conf)
+    wandb_logger = WandbLogger(
+        project=conf.dataset.project, entity="ia-lim", config=conf, name=tb_exp_name
+    )
     # actualiza el config existente
     # wandb_logger.experiment.config.update(conf, allow_val_change=True)
     # early_stop_callback = EarlyStopping(

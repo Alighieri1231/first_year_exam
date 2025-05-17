@@ -43,6 +43,7 @@ train_par:
     mode: "max"
 
 dataset:
+  project: "first_year_exam"  
   experiment: "experiment"
   data_dir: "/data/GitHub/first_year_exam/data/data_uncorrected"
   train: "/data/GitHub/first_year_exam/data/data_uncorrected/train.csv" #/data_uncorrected/train.csv"

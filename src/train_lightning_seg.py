@@ -96,7 +96,9 @@ def main():
     seed_everything(seed=2024, workers=True)
 
     # Configuración de logging y callbacks
-    wandb_logger = WandbLogger(project="first_year", entity="ia-lim", config=conf)
+    wandb_logger = WandbLogger(
+        project=conf.dataset.project, entity="ia-lim", config=conf, name=tb_exp_name
+    )
     if conf.train_par.early_stopping_flag:
         early_stop_callback = EarlyStopping(
             monitor="valid_dataset_iou", patience=conf.train_par.patience, mode="max"
