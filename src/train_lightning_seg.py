@@ -17,10 +17,13 @@ import lightning as L
 # from model_lightning_seg import MyModel
 from src.models.model_smp import USModel
 from src.datamodules.data_datamodule_seg import WSIDataModule
+from src.datamodules.data_datamodule_seg_un import WSIDataModule as WSIDataModuleUn
 import random
 import numpy as np
 
-if __name__ == "__main__":
+
+def main():
+    wandb.init()
     # os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
     trainparser = argparse.ArgumentParser(
         description="[StratifIAD] Parameters for training", allow_abbrev=False
@@ -59,16 +62,28 @@ if __name__ == "__main__":
     # print(dev_file)
     # print(data_dir)
     # Create a DataModule
-    data_module = WSIDataModule(
-        batch_size=conf.train_par.batch_size,
-        workers=conf.train_par.workers,
-        train_file=train_file,
-        dev_file=dev_file,
-        test_file=test_file,
-        data_dir=data_dir,
-        cache_data=cache_data,
-        random_seed=random_seed,
-    )
+    if conf.dataset.unlabeled_dataset:
+        data_module = WSIDataModuleUn(
+            batch_size=conf.train_par.batch_size,
+            workers=conf.train_par.workers,
+            train_file=train_file,
+            dev_file=dev_file,
+            test_file=test_file,
+            data_dir=data_dir,
+            cache_data=cache_data,
+            random_seed=random_seed,
+        )
+    else:
+        data_module = WSIDataModule(
+            batch_size=conf.train_par.batch_size,
+            workers=conf.train_par.workers,
+            train_file=train_file,
+            dev_file=dev_file,
+            test_file=test_file,
+            data_dir=data_dir,
+            cache_data=cache_data,
+            random_seed=random_seed,
+        )
     # Tamaño del batch de imágenes: torch.Size([1, 1, 128, 128, 128])
     # Tamaño del batch de etiquetas: torch.Size([1])
 
@@ -81,10 +96,13 @@ if __name__ == "__main__":
     seed_everything(seed=2024, workers=True)
 
     # Configuración de logging y callbacks
-    wandb_logger = WandbLogger(project="first_year", entity="ia-lim", config=conf)
-    early_stop_callback = EarlyStopping(
-        monitor="valid_dataset_iou", patience=10, mode="max"
+    wandb_logger = WandbLogger(
+        project=conf.dataset.project, entity="ia-lim", config=conf, name=tb_exp_name
     )
+    if conf.train_par.early_stopping_flag:
+        early_stop_callback = EarlyStopping(
+            monitor="valid_dataset_iou", patience=conf.train_par.patience, mode="max"
+        )
     model_checkpoint = ModelCheckpoint(
         monitor="valid_dataset_iou", mode="max", save_top_k=1, save_last=True
     )
@@ -100,9 +118,10 @@ if __name__ == "__main__":
         logger=wandb_logger,
         profiler=conf.train_par.profiler,
         callbacks=[early_stop_callback, model_checkpoint],
-        precision="bf16-mixed",)
-        #deterministic=True,
-    #)
+        precision="bf16-mixed",
+    )
+    # deterministic=True,
+    # )
 
     # Entrenar modelo
     trainer.fit(model, datamodule=data_module)
@@ -111,5 +130,32 @@ if __name__ == "__main__":
     #   TEST FINAL
     trainer.test(model=model, datamodule=data_module)
 
-    # GUARDAR OVERLAYS DE TEST
-    model.save_test_overlays(data_module, results_path, "test")
+    # Evaluar en validación del mejor modelo
+    if model_checkpoint.best_model_path:
+        best_model = USModel.load_from_checkpoint(
+            model_checkpoint.best_model_path,
+            model_opts=conf.model_opts,
+            train_par=conf.train_par,
+        )
+        metrics = trainer.validate(best_model, datamodule=data_module)
+        val_iou = metrics[0]["valid_dataset_iou"]
+
+        # Loggear el mejor resultado en WandB
+        wandb.log({"valid dataset iou (best model)": val_iou})
+
+        # Evaluar en test solo si el mejor modelo tiene val_iou > 0.4
+        if val_iou > conf.train_par.eval_threshold:
+            trainer.test(best_model, datamodule=data_module)
+            best_model.log_test_images(
+                data_module,
+                num_images=10,
+                val_iou=val_iou,
+                threshold=0.4,
+                only_roi_frames=True,
+            )
+
+    return val_iou
+
+
+if __name__ == "__main__":
+    main()

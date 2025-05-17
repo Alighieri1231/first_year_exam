@@ -11,7 +11,7 @@ from lightning.pytorch.loggers import WandbLogger
 import lightning as L
 
 from src.models.model_smp import USModel
-from src.datamodules.data_datamodule_seg import WSIDataModule
+from src.datamodules.data_datamodule_seg_un import WSIDataModule
 
 
 # Definir la función de entrenamiento que WandB Sweeps ejecutará
@@ -56,9 +56,10 @@ def main():
 
     # Configuración de logging y callbacks
     wandb_logger = WandbLogger(project="first_year_sweep", entity="ia-lim", config=conf)
-    early_stop_callback = EarlyStopping(
-        monitor="valid_dataset_iou", patience=10, mode="max"
-    )
+    if conf.train_par.early_stopping_flag:
+        early_stop_callback = EarlyStopping(
+            monitor="valid_dataset_iou", patience=conf.train_par.patience, mode="max"
+        )
     model_checkpoint = ModelCheckpoint(
         monitor="valid_dataset_iou", mode="max", save_top_k=1, save_last=True
     )
@@ -75,7 +76,8 @@ def main():
         logger=wandb_logger,
         profiler=conf.train_par.profiler,
         callbacks=[early_stop_callback, model_checkpoint],
-        precision="bf16-mixed",)
+        precision="bf16-mixed",
+    )
     #     deterministic=True,
     # )
 
@@ -98,10 +100,14 @@ def main():
         wandb.log({"valid dataset iou (best model)": val_iou})
 
         # Evaluar en test solo si el mejor modelo tiene val_iou > 0.4
-        if val_iou > 0.4:
+        if val_iou > conf.train_par.eval_threshold:
             trainer.test(best_model, datamodule=data_module)
             best_model.log_test_images(
-                data_module, num_images=10, val_iou=val_iou, threshold=0.4, only_roi_frames=True
+                data_module,
+                num_images=10,
+                val_iou=val_iou,
+                threshold=0.4,
+                only_roi_frames=True,
             )
 
     return val_iou
