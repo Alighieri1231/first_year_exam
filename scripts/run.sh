@@ -11,8 +11,8 @@ CMD="python -m src.train_lightning_seg"
 for rep in "${REPS[@]}"; do
   for DS in data_uncorrected data_corrected_w_annotation data_corrected_wo_annotation; do
     TRAIN_CSV="${BASE_DATA}/${DS}/train.csv"
-    DEV_CSV="${BASE_DATA}/${DS}/validation.csv"
-    TEST_CSV="${BASE_DATA}/${DS}/test.csv"
+    DEV_CSV ="${BASE_DATA}/${DS}/validation.csv"
+    TEST_CSV ="${BASE_DATA}/${DS}/test.csv"
     RUNID="${DS}_r${rep}"
     echo "=== Run: ${RUNID} ==="
     $CMD \
@@ -31,8 +31,8 @@ SUFFIXES=(l nl lb lm)
 for rep in "${REPS[@]}"; do
   for suf in "${SUFFIXES[@]}"; do
     TRAIN_CSV="${BASE_DATA}/data_uncorrected/train_${suf}.csv"
-    DEV_CSV="${BASE_DATA}/data_uncorrected/validation_${suf}.csv"
-    TEST_CSV="${BASE_DATA}/data_uncorrected/test_${suf}.csv"
+    DEV_CSV  ="${BASE_DATA}/data_uncorrected/validation_${suf}.csv"
+    TEST_CSV ="${BASE_DATA}/data_uncorrected/test_${suf}.csv"
     RUNID="uncorrected_${suf}_r${rep}"
     echo "=== Run: ${RUNID} ==="
     $CMD \
