@@ -22,7 +22,6 @@ import numpy as np
 
 
 def main():
-    wandb.init()
 
     trainparser = argparse.ArgumentParser(
         description="[StratifIAD] Parameters for training", allow_abbrev=False
@@ -48,6 +47,8 @@ def main():
     cache_data = conf.dataset.cache_data
     rescale_factor = conf.dataset.rescale_factor
     tb_exp_name = f"{conf.dataset.experiment}_model"
+    wandb.init(project=conf.dataset.project, entity="ia-lim", config=conf, name=tb_exp_name)
+
 
     # Setting a random seed for reproducibility
     if conf.train_par.random_seed == "default":
