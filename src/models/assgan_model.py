@@ -409,7 +409,7 @@ class ASSGAN(L.LightningModule):
 
         print(f"Saved test overlays for G1/G2 under {results_path}")
 
-    def log_ctest_images(
+    def log_test_images(
         self,
         data_module,
         threshold=0.4,
