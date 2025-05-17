@@ -23,7 +23,6 @@ import numpy as np
 
 
 def main():
-    wandb.init()
     # os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
     trainparser = argparse.ArgumentParser(
         description="[StratifIAD] Parameters for training", allow_abbrev=False
@@ -51,6 +50,8 @@ def main():
     # name = dev_file.replace('dev','test').split('.')[0].split('/')[-1]
     # tb_exp_name = f'{conf.dataset.experiment}_{name}_patchSize_{rescale_factor}'
     tb_exp_name = f"{conf.dataset.experiment}_model"
+    wandb.init(project=conf.dataset.project, entity="ia-lim", config=conf, name=tb_exp_name)
+
 
     # Setting a random seed for reproducibility
     if conf.train_par.random_seed == "default":
