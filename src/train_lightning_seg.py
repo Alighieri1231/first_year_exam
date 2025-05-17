@@ -149,7 +149,7 @@ def main():
             trainer.test(best_model, datamodule=data_module)
             best_model.log_test_images(
                 data_module,
-                num_images=10,
+                num_images=50,
                 val_iou=val_iou,
                 threshold=0.4,
                 only_roi_frames=True,
