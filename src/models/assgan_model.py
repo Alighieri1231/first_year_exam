@@ -82,6 +82,7 @@ class ASSGAN(L.LightningModule):
         self.lambda_semi = train_par.lambda_semi  # weight for pseudo‐loss
         self.supervised_epochs = train_par.supervised_epochs  # e.g. 200
         self.gamma_thresh = train_par.gamma_thresh  # e.g. 0.2
+        self.adam_g = train_par.adam_g
 
         # buffer for pulling unlabeled data
         self.unlab_iter = None
@@ -493,20 +494,26 @@ class ASSGAN(L.LightningModule):
             print("No se encontraron imágenes con máscara para loggear.")
 
     def configure_optimizers(self):
-        # opt_g = optim.Adam(
-        #     itertools.chain(self.generator1.parameters(), self.generator2.parameters()),
-        #     lr=self.lr_g,
-        #     betas=self.adam_betas,
-        #     weight_decay=self.weight_decay,
-        # )
-
-        # Sgd for generator
-        opt_g = optim.SGD(
-            itertools.chain(self.generator1.parameters(), self.generator2.parameters()),
-            lr=self.lr_g,
-            momentum=0.9,
-            weight_decay=self.weight_decay,
-        )
+        if self.adam_g:
+            # Adam for generator
+            opt_g = optim.Adam(
+                itertools.chain(
+                    self.generator1.parameters(), self.generator2.parameters()
+                ),
+                lr=self.lr_g,
+                betas=self.adam_betas,
+                weight_decay=self.weight_decay,
+            )
+        else:
+            # Sgd for generator
+            opt_g = optim.SGD(
+                itertools.chain(
+                    self.generator1.parameters(), self.generator2.parameters()
+                ),
+                lr=self.lr_g,
+                momentum=0.9,
+                weight_decay=self.weight_decay,
+            )
         opt_d = optim.Adam(
             self.discriminator.parameters(),
             lr=self.lr_d,
