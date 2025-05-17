@@ -16,12 +16,14 @@ import lightning as L
 
 # from model_lightning_seg import MyModel
 from src.models.assgan_model import ASSGAN as USModel
-from src.datamodules.data_datamodule_seg import WSIDataModule
+from src.datamodules.data_datamodule_seg_un import WSIDataModule
 import random
 import numpy as np
 
-if __name__ == "__main__":
-    # os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
+
+def main():
+    wandb.init()
+
     trainparser = argparse.ArgumentParser(
         description="[StratifIAD] Parameters for training", allow_abbrev=False
     )
@@ -36,7 +38,6 @@ if __name__ == "__main__":
 
     conf = Dict(yaml.safe_load(open(args.config_file, "r")))
 
-    wandb.init(project="first_year_exam", entity="ia-lim", config=conf)
     #
 
     torch.set_float32_matmul_precision("medium")
@@ -79,7 +80,7 @@ if __name__ == "__main__":
 
     wandb_logger = WandbLogger(project="first_year_exam", entity="ia-lim", config=conf)
     # actualiza el config existente
-    #wandb_logger.experiment.config.update(conf, allow_val_change=True)
+    # wandb_logger.experiment.config.update(conf, allow_val_change=True)
     # early_stop_callback = EarlyStopping(
     #     monitor="valid_dataset_iou", patience=10, mode="max"
     # )
@@ -113,32 +114,33 @@ if __name__ == "__main__":
     trainer.fit(model, datamodule=data_module)
 
     trainer.test(model=model, datamodule=data_module)
-    test_metrics = trainer.test(model=model, datamodule=data_module)
 
-    best_path = checkpoint.best_model_path
-    if best_path:
-        print("Best ckpt:", best_path)
+    # Evaluar en validación del mejor modelo
+    if checkpoint.best_model_path:
         best_model = USModel.load_from_checkpoint(
-            best_path,
+            checkpoint.best_model_path,
             model_opts=conf.model_opts,
             train_par=conf.train_par,
         )
-        # validar
-        val_metrics = trainer.validate(
-            best_model, datamodule=data_module, verbose=False
-        )
-        val_iou = val_metrics[0]["valid_dataset_iou"]
+        metrics = trainer.validate(best_model, datamodule=data_module)
+        val_iou = metrics[0]["valid_dataset_iou"]
+
+        # Loggear el mejor resultado en WandB
+        wandb.log({"valid dataset iou (best model)": val_iou})
+
+        # Evaluar en test solo si el mejor modelo tiene val_iou > 0.4
         if val_iou > 0.4:
-            best_model.log_ctest_images(
+            trainer.test(best_model, datamodule=data_module)
+            best_model.log_test_images(
                 data_module,
-                threshold=0.2,
+                num_images=10,
                 val_iou=val_iou,
+                threshold=0.4,
                 only_roi_frames=True,
-                num_images=30,
             )
 
-    else:
-        print("No se encontró ningún checkpoint guardado.")
+    return val_iou
 
-    # cerrar WandB
-    wandb.finish()
+
+if __name__ == "__main__":
+    main()

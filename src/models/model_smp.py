@@ -25,6 +25,7 @@ class USModel(L.LightningModule):
         self.lr = train_par.lr
         self.weight_decay = train_par.weight_decay
         self.optimizer_name = train_par.optimizer
+        self.loss = train_par.loss_opts.name
 
         # if self.optimizer is a dict with key 'name':'adamw', convert it to a string only adamw
         if isinstance(self.optimizer_name, dict):
@@ -41,9 +42,18 @@ class USModel(L.LightningModule):
 
         # for image segmentation dice loss could be the best first choice
         # self.loss_fn = smp.losses.DiceLoss(smp.losses.BINARY_MODE, from_logits=True) a 0.7 b=0.3
-        self.loss_fn = smp.losses.TverskyLoss(
-            smp.losses.BINARY_MODE, from_logits=True, alpha=0.5, beta=0.5
-        )
+        if self.loss == "dice":
+            self.loss_fn = smp.losses.DiceLoss(
+                smp.losses.BINARY_MODE, from_logits=True, smooth=1e-6
+            )
+        elif self.loss == "focal":
+            self.loss_fn = smp.losses.FocalLoss(
+                smp.losses.BINARY_MODE, from_logits=True, alpha=0.25, gamma=2.0
+            )
+        elif self.loss == "tversky":
+            self.loss_fn = smp.losses.TverskyLoss(
+                smp.losses.BINARY_MODE, from_logits=True, alpha=0.5, beta=0.5
+            )
 
         # initialize step metics
         self.training_step_outputs = []

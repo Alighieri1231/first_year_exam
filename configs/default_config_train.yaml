@@ -21,8 +21,8 @@ train_par:
   workers: 8
   lr: 0.001
   weight_decay: 0.001
-  eval_threshold: 0.5
-  patience: 50
+  eval_threshold: 0.4
+  patience: 15
   early_stopping_flag: True
   results_path: "/data/GitHub/first_year_exam/results"
   optimizer:
@@ -30,7 +30,7 @@ train_par:
   scheduler:
     name: 'step_lr'
   loss_opts:
-    name: "DiceLossOriginal" # BCEDiceLoss; BCELoss ; SigmoidFocalLoss; TopologicalPoolingLoss; BCEDiceLoss
+    name: 'tversky'
     args:
       weight: 0.1 # this is for BCELogits (value will be computed automatically) & BCEDiceLoss (you need to input a value, default: 0.1)
       #alpha: 1 # this is only for focal loss
@@ -53,3 +53,4 @@ dataset:
   patch_overlap: 0
   queue_length: 100
   samples_per_volume: 10
+  unlabeled_dataset: False
