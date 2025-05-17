@@ -2,6 +2,7 @@
 BASE_CFG=configs/default_config_train.yaml
 BASE_DATA=/data/GitHub/first_year_exam/data
 REPS=(1 2 3)
+CMD="python -m src.train_lightning_seg"
 
 #
 # 1) Corridas por sub‐carpeta ×3 réplicas
@@ -10,7 +11,7 @@ for rep in "${REPS[@]}"; do
   for DS in data_uncorrected data_corrected_w_annotation data_corrected_wo_annotation; do
     RUNID="${DS}_r${rep}"
     echo "=== Run: ${RUNID} ==="
-    python main.py \
+    $CMD \
       -c "${BASE_CFG}" \
       --run-id "${RUNID}" \
       --data-dir-override "${BASE_DATA}/${DS}" \
@@ -28,7 +29,7 @@ for rep in "${REPS[@]}"; do
   for suf in "${SUFFIXES[@]}"; do
     RUNID="uncorrected_${suf}_r${rep}"
     echo "=== Run: ${RUNID} ==="
-    python main.py \
+    $CMD \
       -c "${BASE_CFG}" \
       --run-id "${RUNID}" \
       --data-dir-override "${BASE_DATA}/data_uncorrected" \
