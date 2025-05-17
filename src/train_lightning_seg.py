@@ -6,39 +6,68 @@ import os
 
 import torch
 from lightning.pytorch import seed_everything, Trainer
-from lightning.pytorch.callbacks import DeviceStatsMonitor
 from lightning.pytorch.callbacks.early_stopping import EarlyStopping
-from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
+from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.loggers import WandbLogger
-import matplotlib.pyplot as plt
-import cv2
-import lightning as L
 
-# from model_lightning_seg import MyModel
 from src.models.model_smp import USModel
 from src.datamodules.data_datamodule_seg import WSIDataModule
 from src.datamodules.data_datamodule_seg_un import WSIDataModule as WSIDataModuleUn
 import random
-import numpy as np
 
 
 def main():
-    # os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
-    trainparser = argparse.ArgumentParser(
-        description="[StratifIAD] Parameters for training", allow_abbrev=False
+    # ——— Parser de argumentos ———
+    parser = argparse.ArgumentParser(
+        description="[StratifIAD] Parámetros para training", allow_abbrev=False
     )
-    trainparser.add_argument(
+    parser.add_argument(
         "-c",
         "--config-file",
         type=str,
         default="/data/GitHub/first_year_exam/configs/default_config_train.yaml",
+        help="Ruta al YAML de configuración",
     )
+    parser.add_argument(
+        "--run-id",
+        type=str,
+        default="run0",
+        help="Identificador de la corrida (se usa en el nombre de W&B)",
+    )
+    parser.add_argument(
+        "--data-dir-override", type=str, help="Reemplaza a conf.dataset.data_dir"
+    )
+    parser.add_argument(
+        "--train-file-override",
+        type=str,
+        help="Nombre del CSV de train (relativo a data_dir)",
+    )
+    parser.add_argument(
+        "--dev-file-override",
+        type=str,
+        help="Nombre del CSV de validación (relativo a data_dir)",
+    )
+    parser.add_argument(
+        "--test-file-override",
+        type=str,
+        help="Nombre del CSV de test (relativo a data_dir)",
+    )
+    args = parser.parse_args()
 
-    args = trainparser.parse_args()
-
+    # ——— Carga del YAML de configuración ———
     conf = Dict(yaml.safe_load(open(args.config_file, "r")))
 
-    # torch.backends.cudnn.benchmark = True
+    # ——— Overrides por CLI ———
+    if args.data_dir_override:
+        conf.dataset.data_dir = args.data_dir_override
+    if args.train_file_override:
+        conf.dataset.train = args.train_file_override
+    if args.dev_file_override:
+        conf.dataset.dev = args.dev_file_override
+    if args.test_file_override:
+        conf.dataset.test = args.test_file_override
+
+    # ——— Variables actualizadas desde conf ———
     torch.set_float32_matmul_precision("medium")
     data_dir = conf.dataset.data_dir
     train_file = conf.dataset.train
@@ -47,22 +76,20 @@ def main():
     cache_data = conf.dataset.cache_data
     rescale_factor = conf.dataset.rescale_factor
 
-    # name = dev_file.replace('dev','test').split('.')[0].split('/')[-1]
-    # tb_exp_name = f'{conf.dataset.experiment}_{name}_patchSize_{rescale_factor}'
-    tb_exp_name = f"{conf.dataset.experiment}_model"
-    wandb.init(project=conf.dataset.project, entity="ia-lim", config=conf, name=tb_exp_name)
+    # ——— Nombre de la corrida en W&B ———
+    tb_exp_name = f"{conf.dataset.experiment}_{args.run_id}"
+    wandb.init(
+        project=conf.dataset.project, entity="ia-lim", config=conf, name=tb_exp_name
+    )
 
-
-    # Setting a random seed for reproducibility
+    # ——— Fijar semilla para reproducibilidad ———
     if conf.train_par.random_seed == "default":
         random_seed = 2024
     else:
         random_seed = conf.train_par.random_seed
-
     seed_everything(seed=random_seed, workers=True)
-    # print(dev_file)
-    # print(data_dir)
-    # Create a DataModule
+
+    # ——— Creación del DataModule ———
     if conf.dataset.unlabeled_dataset:
         data_module = WSIDataModuleUn(
             batch_size=conf.train_par.batch_size,
@@ -85,6 +112,7 @@ def main():
             cache_data=cache_data,
             random_seed=random_seed,
         )
+
     # Tamaño del batch de imágenes: torch.Size([1, 1, 128, 128, 128])
     # Tamaño del batch de etiquetas: torch.Size([1])
 
