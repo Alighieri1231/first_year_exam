@@ -30,10 +30,10 @@ done
 SUFFIXES=(l nl lb lm)
 for rep in "${REPS[@]}"; do
   for suf in "${SUFFIXES[@]}"; do
-    TRAIN_CSV="${BASE_DATA}/data_uncorrected/train_${suf}.csv"
-    DEV_CSV="${BASE_DATA}/data_uncorrected/validation_${suf}.csv"
-    TEST_CSV="${BASE_DATA}/data_uncorrected/test_${suf}.csv"
-    RUNID="uncorrected_${suf}_r${rep}"
+    TRAIN_CSV="${BASE_DATA}/train_${suf}.csv"
+    DEV_CSV="${BASE_DATA}/validation_${suf}.csv"
+    TEST_CSV="${BASE_DATA}/test_${suf}.csv"
+    RUNID="${suf}_r${rep}"
     echo "=== Run: ${RUNID} ==="
     $CMD \
       -c "${BASE_CFG}" \
