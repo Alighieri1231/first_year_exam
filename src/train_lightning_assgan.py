@@ -22,21 +22,53 @@ import numpy as np
 
 
 def main():
-    trainparser = argparse.ArgumentParser(
+    parser = argparse.ArgumentParser(
         description="[StratifIAD] Parameters for training", allow_abbrev=False
     )
-    trainparser.add_argument(
+    parser.add_argument(
         "-c",
         "--config-file",
         type=str,
         default="/data/GitHub/first_year_exam/configs/assgan_config_train.yaml",
     )
+    parser.add_argument(
+        "--run-id",
+        type=str,
+        default="run0",
+        help="Identificador de la corrida (se usa en el nombre de W&B)",
+    )
+    parser.add_argument(
+        "--data-dir-override", type=str, help="Reemplaza a conf.dataset.data_dir"
+    )
+    parser.add_argument(
+        "--train-file-override",
+        type=str,
+        help="Nombre del CSV de train (relativo a data_dir)",
+    )
+    parser.add_argument(
+        "--dev-file-override",
+        type=str,
+        help="Nombre del CSV de validación (relativo a data_dir)",
+    )
+    parser.add_argument(
+        "--test-file-override",
+        type=str,
+        help="Nombre del CSV de test (relativo a data_dir)",
+    )
 
-    args = trainparser.parse_args()
+    args = parser.parse_args()
 
     conf = Dict(yaml.safe_load(open(args.config_file, "r")))
 
-    #
+    # ——— Overrides por CLI ———
+    if args.data_dir_override:
+        conf.dataset.data_dir = args.data_dir_override
+    if args.train_file_override:
+        conf.dataset.train = args.train_file_override
+    if args.dev_file_override:
+        conf.dataset.dev = args.dev_file_override
+    if args.test_file_override:
+        conf.dataset.test = args.test_file_override
 
     torch.set_float32_matmul_precision("medium")
     data_dir = conf.dataset.data_dir
