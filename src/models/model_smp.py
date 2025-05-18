@@ -363,7 +363,7 @@ class USModel(L.LightningModule):
                     plt.close(fig)  # Cerrar la figura para evitar problemas de memoria
 
         if wandb_images:
-            wandb.log({"Ejemplos de Segmentación": wandb_images})
+            self.log({"Ejemplos de Segmentación": wandb_images})
         else:
             print("No se encontraron imágenes con máscara para loggear.")
 
