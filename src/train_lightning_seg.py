@@ -52,6 +52,12 @@ def main():
         type=str,
         help="Nombre del CSV de test (relativo a data_dir)",
     )
+    parser.add_argument(
+        "--arch-override",
+        type=str,
+        choices=["pspnet", "manet", "unetplusplus", "unet", "deeplabv3plus"],
+        help="Override de la arquitectura (model_opts.arch)",
+    )
     args = parser.parse_args()
 
     # ——— Carga del YAML de configuración ———
@@ -66,6 +72,9 @@ def main():
         conf.dataset.dev = args.dev_file_override
     if args.test_file_override:
         conf.dataset.test = args.test_file_override
+    if args.arch_override:
+        # sobreescribimos arch y lo pasamos a mayúsculas como en tu YAML original si lo necesitas
+        conf.model_opts.arch = args.arch_override
 
     # ——— Variables actualizadas desde conf ———
     torch.set_float32_matmul_precision("medium")
