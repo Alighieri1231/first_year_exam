@@ -32,6 +32,8 @@ train_par:
   lambda_adv: 0.01
   lambda_adv_u: 0.001
   lambda_semi: 0.1
+  lambda_clas: 0.1
+  lambda_clas_u: 0.1
 
   # semi-supervisión
   supervised_epochs: 200 #200
