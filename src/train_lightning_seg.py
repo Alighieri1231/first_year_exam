@@ -188,7 +188,7 @@ def main():
                 data_module,
                 num_images=50,
                 val_iou=val_iou,
-                threshold=0.4,
+                threshold=0.1,
                 only_roi_frames=True,
             )
 
