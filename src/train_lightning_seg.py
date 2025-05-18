@@ -88,9 +88,9 @@ def main():
     # ——— Nombre de la corrida en W&B ———
     tb_exp_name = f"{conf.dataset.experiment}_{args.run_id}"
 
-    wandb.init(
-        project=conf.dataset.project, entity="ia-lim", config=conf, name=tb_exp_name
-    )
+    #wandb.init(
+    #    project=conf.dataset.project, entity="ia-lim", config=conf, name=tb_exp_name
+    #)
 
     # ——— Fijar semilla para reproducibilidad ———
     if conf.train_par.random_seed == "default":
