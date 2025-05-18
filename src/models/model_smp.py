@@ -110,7 +110,7 @@ class USModel(L.LightningModule):
 
         if self.classification_loss:
             # add classification loss to the total loss
-            loss = loss + 1*loss_clas
+            loss = loss + 1 * loss_clas
 
         # Lets compute metrics for some threshold
         # first convert mask values to probabilities, then
@@ -210,6 +210,12 @@ class USModel(L.LightningModule):
         self.shared_epoch_end(self.test_step_outputs, "test")
         # empty set output list
         self.test_step_outputs.clear()
+        # log the images
+        self.log_test_images(
+            num_images=50,
+            threshold=0.1,
+            only_roi_frames=True,
+        )
         return
 
     def save_test_overlays(self, data_module, results_path, name):
@@ -279,14 +285,9 @@ class USModel(L.LightningModule):
         self,
         data_module,
         threshold=0.4,
-        val_iou=None,
         only_roi_frames=False,
         num_images=10,
     ):
-        if val_iou is None or val_iou <= threshold:
-            print(f"No se loggearán imágenes porque val_iou ({val_iou}) ≤ {threshold}")
-            return  # No hacer nada si val_iou es menor o igual a 0.4
-
         self.eval()
         device = "cuda" if torch.cuda.is_available() else "cpu"
         self.to(device)
