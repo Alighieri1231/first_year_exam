@@ -15,7 +15,6 @@ for rep in "${REPS[@]}"; do
       echo "=== Run: ${RUNID} ==="
       ${CMD} -c "${BASE_CFG}" \
         --run-id "${RUNID}" \
-        --data-dir-override "${BASE_DATA}/${DS}" \
         --train-file-override "${BASE_DATA}/${DS}/train.csv" \
         --dev-file-override   "${BASE_DATA}/${DS}/validation.csv" \
         --test-file-override  "${BASE_DATA}/${DS}/test.csv" \
@@ -32,7 +31,6 @@ for rep in "${REPS[@]}"; do
       echo "=== Run: ${RUNID} ==="
       ${CMD} -c "${BASE_CFG}" \
         --run-id "${RUNID}" \
-        --data-dir-override "${BASE_DATA}" \
         --train-file-override "${BASE_DATA}/train_${suf}.csv" \
         --dev-file-override   "${BASE_DATA}/validation_${suf}.csv" \
         --test-file-override  "${BASE_DATA}/test_${suf}.csv" \
