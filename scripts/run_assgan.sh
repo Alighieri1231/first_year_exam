@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 BASE_CFG=configs/assgan_config_train.yaml
 BASE_DATA=/scratch/bcastane_lab/eochoaal/first_year_exam/data
-REPS=(1 2)
+REPS=(1 2 3)
 DS_TYPES=(data_uncorrected data_corrected_w_annotation data_corrected_wo_annotation)
 SUFFIXES=(l nl lb lm)
-GAMMAS=(0.2 0.5)
+GAMMAS=(0.2 0.5 0.8)
 CMD="python -m src.train_lightning_assgan"
 
 # 1) Data variants × replicas × gamma_thresh
