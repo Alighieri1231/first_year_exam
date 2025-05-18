@@ -225,7 +225,7 @@ class USModel(L.LightningModule):
                 image = batch["image"].to(self.device)
                 mask = batch["mask"].to(self.device)
 
-                logits_mask = self.forward(image)
+                logits_mask, _ = self.forward(image)
                 prob_mask = logits_mask.sigmoid()
                 pred_mask = (prob_mask > 0.5).float()
 
@@ -314,7 +314,7 @@ class USModel(L.LightningModule):
         with torch.no_grad():
             for batch in test_loader:
                 images, masks = batch["image"].to(device), batch["mask"].to(device)
-                logits_mask = self.forward(images)
+                logits_mask, _ = self.forward(images)
                 preds = torch.sigmoid(logits_mask) > 0.5
 
                 for i in range(images.shape[0]):

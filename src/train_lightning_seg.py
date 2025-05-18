@@ -166,6 +166,7 @@ def main():
 
     print(f"Best model path: {model_checkpoint.best_model_path}")
     #   TEST FINAL
+    
     trainer.test(model=model, datamodule=data_module)
 
     # Evaluar en validación del mejor modelo
