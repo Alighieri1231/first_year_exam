@@ -37,7 +37,7 @@ train_par:
   gamma_thresh: 0.2 #0.8 #0.5 #0.2
 
   # paths y early stopping
-  results_path: "/data/GitHub/first_year_exam/results"
+  results_path: "/scratch/bcastane_lab/eochoaal/first_year_exam/results"
   early_stopping:
     monitor: "valid_dataset_iou"
     patience: 20
