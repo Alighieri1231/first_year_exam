@@ -84,7 +84,8 @@ def main():
     test_file = conf.dataset.test
     cache_data = conf.dataset.cache_data
     rescale_factor = conf.dataset.rescale_factor
-    tb_exp_name = f"{conf.dataset.experiment}_model"
+    tb_exp_name = f"{conf.dataset.experiment}_{args.run_id}"
+
     wandb.init(
         project=conf.dataset.project, entity="ia-lim", config=conf, name=tb_exp_name
     )
