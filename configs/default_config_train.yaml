@@ -41,7 +41,7 @@ train_par:
   num_classes: 2
 
 dataset:
-  project: "NETs unlabel"
+  project: "NETs unlabel 2"
   experiment: "experiment1"
   data_dir: "/data/GitHub/first_year_exam/data/data_uncorrected"
   train: "/data/GitHub/first_year_exam/data/train_lb.csv" #/data_uncorrected/train.csv"
