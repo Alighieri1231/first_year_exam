@@ -110,7 +110,7 @@ class USModel(L.LightningModule):
 
         if self.classification_loss:
             # add classification loss to the total loss
-            loss = loss + 0.1*loss_clas
+            loss = loss + 1*loss_clas
 
         # Lets compute metrics for some threshold
         # first convert mask values to probabilities, then
