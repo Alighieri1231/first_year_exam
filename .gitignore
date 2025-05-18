@@ -129,8 +129,15 @@ dmypy.json
 .pyre/
 
 ### Lightning-Template ###
-/data/*
-!/data/.gitkeep
+/data/data_corrected_w_annotation/gt
+/data/data_corrected_w_annotation/label
+/data/data_corrected_wo_annotation/gt
+/data/data_corrected_wo_annotation/label
+/data/data_uncorrected/gt
+/data/data_uncorrected/label
+/data/DATASET_BUSI_with_gt/
+
+
 /models/*
 !/models/.gitkeep
 /results/*
@@ -149,3 +156,6 @@ dmypy.json
 *.gif
 *.xlsx
 *.avi
+*.zip
+*.pdf
+*.mat
