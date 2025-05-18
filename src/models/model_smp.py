@@ -135,9 +135,22 @@ class USModel(L.LightningModule):
         # with "empty" images (images without target class) a large gap could be observed.
         # Empty images influence a lot on per_image_iou and much less on dataset_iou.
         dataset_iou = smp.metrics.iou_score(tp, fp, fn, tn, reduction="micro")
+
+        per_image_f1 = smp.metrics.f1_score(tp, fp, fn, tn, reduction="micro-imagewise")
+        dataset_f1 = smp.metrics.f1_score(tp, fp, fn, tn, reduction="micro")
+
+        per_image_acc = smp.metrics.accuracy(
+            tp, fp, fn, tn, reduction="micro-imagewise"
+        )
+        dataset_acc = smp.metrics.accuracy(tp, fp, fn, tn, reduction="micro")
+
         metrics = {
             f"{stage}_per_image_iou": per_image_iou,
             f"{stage}_dataset_iou": dataset_iou,
+            f"{stage}_per_image_f1": per_image_f1,
+            f"{stage}_dataset_f1": dataset_f1,
+            f"{stage}_per_image_acc": per_image_acc,
+            f"{stage}_dataset_acc": dataset_acc,
         }
 
         self.log_dict(metrics, prog_bar=True, sync_dist=True)
