@@ -2,7 +2,7 @@
 
 #SBATCH -p reserved --reservation=bcastane_12222024
 #SBATCH --time=01:00:00
-#SBATCH --gres=gpu:4
+#SBATCH --gres=gpu:2
 #SBATCH --ntasks-per-node=4
 #SBATCH --cpus-per-task=4
 #SBATCH --mem-per-cpu=16G
@@ -24,5 +24,14 @@ free -h
 
 nvidia-smi
 
-srun python test.py
+export PYTHONPATH=$PYTHONPATH:/gpfs/fs2/scratch/bcastane_lab/eochoaal/first_year_exam/src
+
+wandb login 99d93a8c3ae2885fe88d1d7a5b3d2892f535e967
+
+#run the script
+
+echo "=== Lanzando todas las corridas de ASSGAN ==="
+# Asegúrate de que run_experiments.sh es ejecutable (chmod +x)
+# y está en la ruta correcta, o usa la ruta absoluta:
+srun bash /gpfs/fs2/scratch/bcastane_lab/eochoaal/first_year_exam/scripts/run_assgan.sh
 
