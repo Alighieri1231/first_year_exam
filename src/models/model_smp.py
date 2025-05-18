@@ -75,11 +75,11 @@ class USModel(L.LightningModule):
         # normalize image here
         image = (image - self.mean) / self.std
         mask, pred_cat = self.model(image)
-        return mask
+        return mask, pred_cat
 
     def shared_step(self, batch, stage):
         image = batch["image"]
-        gt_class = batch["category"]
+        gt_class = batch["category"].to(self.device)
 
         # Shape of the image should be (batch_size, num_channels, height, width)
         # if you work with grayscale images, expand channels dim to have [batch_size, 1, height, width]
@@ -127,6 +127,11 @@ class USModel(L.LightningModule):
         tp, fp, fn, tn = smp.metrics.get_stats(
             pred_mask.long(), mask.long(), mode="binary"
         )
+
+        if self.classification_loss:
+            with torch.no_grad():
+                acc_clas = (logits_clas.argmax(dim=1) == gt_class).float().mean()
+            self.log(f"{stage}_acc_clas", acc_clas, prog_bar=True, sync_dist=True)
         return {
             "loss": loss,
             "tp": tp,

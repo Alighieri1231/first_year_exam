@@ -1,14 +1,14 @@
 file_name,clase,is_duplicate
-benign (428).png,benign,False
+benign (103).png,benign,False
 malignant (142).png,malignant,False
 benign (357).png,benign,False
-malignant (60).png,malignant,False
+malignant (23).png,malignant,False
 benign (363).png,benign,False
 benign (283).png,benign,False
-malignant (146).png,malignant,False
+malignant (91).png,malignant,False
 benign (121).png,benign,False
 malignant (197).png,malignant,False
-malignant (169).png,malignant,False
+malignant (165).png,malignant,False
 benign (355).png,benign,False
 benign (181).png,benign,False
 benign (182).png,benign,False

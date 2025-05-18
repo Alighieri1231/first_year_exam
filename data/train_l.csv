@@ -108,7 +108,7 @@ benign (98).png,benign,False
 benign (100).png,benign,False
 benign (101).png,benign,False
 benign (102).png,benign,False
-benign (103).png,benign,False
+benign (1).png,benign,Trye
 benign (104).png,benign,False
 benign (105).png,benign,True
 benign (106).png,benign,False
@@ -395,7 +395,7 @@ malignant (19).png,malignant,False
 malignant (20).png,malignant,False
 malignant (21).png,malignant,False
 malignant (22).png,malignant,False
-malignant (23).png,malignant,False
+malignant (10).png,malignant,True
 malignant (24).png,malignant,False
 malignant (25).png,malignant,False
 malignant (26).png,malignant,False
@@ -453,7 +453,7 @@ malignant (86).png,malignant,True
 malignant (87).png,malignant,False
 malignant (89).png,malignant,False
 malignant (90).png,malignant,False
-malignant (91).png,malignant,False
+malignant (110).png,malignant,True
 malignant (96).png,malignant,True
 malignant (97).png,malignant,True
 malignant (99).png,malignant,True
@@ -510,7 +510,7 @@ malignant (161).png,malignant,False
 malignant (162).png,malignant,False
 malignant (163).png,malignant,False
 malignant (164).png,malignant,False
-malignant (165).png,malignant,False
+malignant (11).png,malignant,True
 malignant (166).png,malignant,False
 malignant (167).png,malignant,False
 malignant (168).png,malignant,False

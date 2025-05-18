@@ -289,7 +289,7 @@ benign (74).png,benign,False
 malignant (46).png,malignant,False
 malignant (82).png,malignant,False
 malignant (48).png,malignant,False
-malignant (165).png,malignant,False
+malignant (169).png,malignant,False
 malignant (186).png,malignant,False
 benign (20).png,benign,False
 malignant (73).png,malignant,False
@@ -380,7 +380,7 @@ malignant (54).png,malignant,False
 benign (420).png,benign,False
 benign (87).png,benign,False
 malignant (136).png,malignant,False
-malignant (23).png,malignant,False
+malignant (60).png,malignant,False
 malignant (70).png,malignant,False
 benign (67).png,benign,False
 benign (364).png,benign,False

@@ -125,7 +125,7 @@ class ASSGAN(L.LightningModule):
         epoch = self.current_epoch
         imgs_l = batch["image"]  # (B,3,H,W)
         masks_l = batch["mask"].unsqueeze(1)  # (B,1,H,W), values {0,1}
-        gt_class = batch["category"]
+        gt_class = batch["category"].to(self.device)  # (B,)
 
         # print(f"imgs_l.shape: {imgs_l.shape}, masks_l.shape: {masks_l.shape}")
 
@@ -241,7 +241,7 @@ class ASSGAN(L.LightningModule):
 
                 # —— 3) perder clasificación cruzada (solo donde mask==True) ——
                 if mask1_cls.any():
-                    loss_clas2_u = self.lambda_clas_u * self.clas_loss_fn(
+                    loss_clas2_u = self.clas_loss_fn(
                         logits_clas2_u[mask1_cls],  # pred del G2
                         pseudo1_cls[mask1_cls],  # pseudo-target de G1
                     )
@@ -249,7 +249,7 @@ class ASSGAN(L.LightningModule):
                     loss_clas2_u = 0.0
 
                 if mask2_cls.any():
-                    loss_clas1_u = self.lambda_clas_u * self.clas_loss_fn(
+                    loss_clas1_u = self.clas_loss_fn(
                         logits_clas1_u[mask2_cls],  # pred del G1
                         pseudo2_cls[mask2_cls],  # pseudo-target de G2
                     )
@@ -320,22 +320,72 @@ class ASSGAN(L.LightningModule):
         )
 
     def _shared_eval_step(self, batch, stage: str):
-        """Hace forward con G1 y G2, promedia y saca tp/fp/fn/tn."""
         imgs = batch["image"]
-        masks = batch["mask"].unsqueeze(1).long()  # (B,1,H,W)
+        masks = batch["mask"].unsqueeze(1).long()
+        stats = {}
 
-        # Normalización y forward
-        p1 = self.generator1(self.processg1(imgs))
-        p2 = self.generator2(self.processg2(imgs))
+        # forward G1/G2
+        p1, c1 = self.generator1(self.processg1(imgs))
+        p2, c2 = self.generator2(self.processg2(imgs))
 
-        prob1 = torch.sigmoid(p1)
-        prob2 = torch.sigmoid(p2)
-        prob_avg = 0.5 * (prob1 + prob2)
-
+        # máscara promediada
+        prob_avg = 0.5 * (torch.sigmoid(p1) + torch.sigmoid(p2))
         pred_mask = (prob_avg > 0.5).long()
+        stats.update(
+            dict(
+                zip(
+                    ("tp", "fp", "fn", "tn"), get_stats(pred_mask, masks, mode="binary")
+                )
+            )
+        )
 
-        tp, fp, fn, tn = get_stats(pred_mask, masks, mode="binary")
-        return {"tp": tp, "fp": fp, "fn": fn, "tn": tn}
+        # clasificación (si está activada)
+        if self.classification_loss:
+            # promedia probabilidades de cls
+            probs1 = torch.softmax(c1, dim=1)
+            probs2 = torch.softmax(c2, dim=1)
+            probs_avg = 0.5 * (probs1 + probs2)
+            pred_cls = probs_avg.argmax(dim=1)
+            gt_cls = batch["category"].to(self.device)
+            correct = (pred_cls == gt_cls).sum()
+            total = gt_cls.size(0)
+            stats["class_correct"] = correct
+            stats["class_total"] = total
+
+        return stats
+
+    def shared_epoch_end(self, outputs, stage: str):
+        # segmentación
+        tp = torch.cat([o["tp"] for o in outputs])
+        fp = torch.cat([o["fp"] for o in outputs])
+        fn = torch.cat([o["fn"] for o in outputs])
+        tn = torch.cat([o["tn"] for o in outputs])
+
+        self.log_dict(
+            {
+                f"{stage}_per_image_iou": iou_score(
+                    tp, fp, fn, tn, reduction="micro-imagewise"
+                ),
+                f"{stage}_dataset_iou": iou_score(tp, fp, fn, tn, reduction="micro"),
+                f"{stage}_per_image_f1": f1_score(
+                    tp, fp, fn, tn, reduction="micro-imagewise"
+                ),
+                f"{stage}_dataset_f1": f1_score(tp, fp, fn, tn, reduction="micro"),
+                f"{stage}_per_image_acc": accuracy(
+                    tp, fp, fn, tn, reduction="micro-imagewise"
+                ),
+                f"{stage}_dataset_acc": accuracy(tp, fp, fn, tn, reduction="micro"),
+            },
+            prog_bar=True,
+            sync_dist=True,
+        )
+
+        # clasificación
+        if self.classification_loss:
+            total_correct = sum(o["class_correct"] for o in outputs)
+            total_samples = sum(o["class_total"] for o in outputs)
+            class_acc = total_correct.float() / total_samples
+            self.log(f"{stage}_class_acc", class_acc, prog_bar=True, sync_dist=True)
 
     def validation_step(self, batch, batch_idx):
         out = self._shared_eval_step(batch, "valid")
@@ -343,33 +393,7 @@ class ASSGAN(L.LightningModule):
         return out
 
     def on_validation_epoch_end(self):
-        tp = torch.cat([x["tp"] for x in self.validation_step_outputs])
-        fp = torch.cat([x["fp"] for x in self.validation_step_outputs])
-        fn = torch.cat([x["fn"] for x in self.validation_step_outputs])
-        tn = torch.cat([x["tn"] for x in self.validation_step_outputs])
-
-        per_image_iou = iou_score(tp, fp, fn, tn, reduction="micro-imagewise")
-        dataset_iou = iou_score(tp, fp, fn, tn, reduction="micro")
-
-        per_image_f1 = f1_score(tp, fp, fn, tn, reduction="micro-imagewise")
-        dataset_f1 = f1_score(tp, fp, fn, tn, reduction="micro")
-
-        per_image_acc = accuracy(tp, fp, fn, tn, reduction="micro-imagewise")
-        dataset_acc = accuracy(tp, fp, fn, tn, reduction="micro")
-
-        self.log_dict(
-            {
-                "valid_per_image_iou": per_image_iou,
-                "valid_dataset_iou": dataset_iou,
-                "valid_per_image_f1": per_image_f1,
-                "valid_dataset_f1": dataset_f1,
-                "valid_per_image_acc": per_image_acc,
-                "valid_dataset_acc": dataset_acc,
-            },
-            prog_bar=True,
-            sync_dist=True,
-        )
-
+        self.shared_epoch_end(self.validation_step_outputs, "valid")
         self.validation_step_outputs.clear()
 
     def test_step(self, batch, batch_idx):
@@ -378,33 +402,7 @@ class ASSGAN(L.LightningModule):
         return out
 
     def on_test_epoch_end(self):
-        tp = torch.cat([x["tp"] for x in self.test_step_outputs])
-        fp = torch.cat([x["fp"] for x in self.test_step_outputs])
-        fn = torch.cat([x["fn"] for x in self.test_step_outputs])
-        tn = torch.cat([x["tn"] for x in self.test_step_outputs])
-
-        per_image_iou = iou_score(tp, fp, fn, tn, reduction="micro-imagewise")
-        dataset_iou = iou_score(tp, fp, fn, tn, reduction="micro")
-
-        per_image_f1 = f1_score(tp, fp, fn, tn, reduction="micro-imagewise")
-        dataset_f1 = f1_score(tp, fp, fn, tn, reduction="micro")
-
-        per_image_acc = accuracy(tp, fp, fn, tn, reduction="micro-imagewise")
-        dataset_acc = accuracy(tp, fp, fn, tn, reduction="micro")
-
-        self.log_dict(
-            {
-                "test_per_image_iou": per_image_iou,
-                "test_dataset_iou": dataset_iou,
-                "test_per_image_f1": per_image_f1,
-                "test_dataset_f1": dataset_f1,
-                "test_per_image_acc": per_image_acc,
-                "test_dataset_acc": dataset_acc,
-            },
-            prog_bar=True,
-            sync_dist=True,
-        )
-
+        self.shared_epoch_end(self.test_step_outputs, "test")
         self.test_step_outputs.clear()
 
     def save_test_overlays(self, data_module, results_path, name="test"):

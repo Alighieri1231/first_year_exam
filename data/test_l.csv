@@ -1,5 +1,5 @@
 file_name,clase,is_duplicate
-benign (1).png,benign,True
+benign (103).png,benign,False
 benign (2).png,benign,True
 benign (320).png,benign,True
 benign (4).png,benign,True
@@ -36,9 +36,9 @@ benign (122).png,benign,True
 malignant (78).png,malignant,True
 malignant (145).png,malignant,True
 malignant (7).png,malignant,True
-malignant (10).png,malignant,True
-malignant (11).png,malignant,True
-malignant (110).png,malignant,True
+malignant (23).png,malignant,True
+malignant (165).png,malignant,True
+malignant (91).png,malignant,True
 malignant (109).png,malignant,True
 malignant (123).png,malignant,True
 malignant (111).png,malignant,True
