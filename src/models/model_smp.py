@@ -212,6 +212,7 @@ class USModel(L.LightningModule):
         self.test_step_outputs.clear()
         # log the images
         self.log_test_images(
+            data_module=self.trainer.datamodule,
             num_images=50,
             threshold=0.1,
             only_roi_frames=True,
