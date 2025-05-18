@@ -55,6 +55,11 @@ def main():
         type=str,
         help="Nombre del CSV de test (relativo a data_dir)",
     )
+    parser.add_argument(
+        "--gamma-thresh-override",
+        type=float,
+        help="Reemplaza conf.train_par.gamma_thresh",
+    )
 
     args = parser.parse_args()
 
@@ -69,6 +74,8 @@ def main():
         conf.dataset.dev = args.dev_file_override
     if args.test_file_override:
         conf.dataset.test = args.test_file_override
+    if args.gamma_thresh_override is not None:
+        conf.train_par.gamma_thresh = args.gamma_thresh_override
 
     torch.set_float32_matmul_precision("medium")
     data_dir = conf.dataset.data_dir
