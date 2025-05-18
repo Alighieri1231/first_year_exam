@@ -403,6 +403,12 @@ class ASSGAN(L.LightningModule):
 
     def on_test_epoch_end(self):
         self.shared_epoch_end(self.test_step_outputs, "test")
+        self.log_test_images(
+            data_module=self.trainer.datamodule,
+            num_images=50,
+            threshold=0.1,
+            only_roi_frames=True,
+        )
         self.test_step_outputs.clear()
 
     def save_test_overlays(self, data_module, results_path, name="test"):
@@ -468,15 +474,9 @@ class ASSGAN(L.LightningModule):
         self,
         data_module,
         threshold=0.4,
-        val_iou=None,
         only_roi_frames=False,
         num_images=10,
     ):
-        # No loguear si la validación no cumple el umbral
-        if val_iou is None or val_iou <= threshold:
-            print(f"No se loggearán imágenes porque val_iou ({val_iou}) ≤ {threshold}")
-            return
-
         self.eval()
         device = self.device
         # tomamos una pequeña muestra del test
@@ -544,7 +544,12 @@ class ASSGAN(L.LightningModule):
                 plt.close(fig)
 
         if wandb_images:
-            wandb.log({"test_examples_G1_G2": wandb_images})
+            # key: nombre de la tabla en W&B
+            # images: lista de tensores/arrays/PIL o wandb.Image
+            self.logger.log_image(
+                key="test_examples_G1_G2",
+                images=wandb_images,
+            )
         else:
             print("No se encontraron imágenes con máscara para loggear.")
 

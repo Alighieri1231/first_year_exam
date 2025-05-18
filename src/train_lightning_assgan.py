@@ -86,10 +86,6 @@ def main():
     rescale_factor = conf.dataset.rescale_factor
     tb_exp_name = f"{conf.dataset.experiment}_{args.run_id}"
 
-    wandb.init(
-        project=conf.dataset.project, entity="ia-lim", config=conf, name=tb_exp_name
-    )
-
     # Setting a random seed for reproducibility
     if conf.train_par.random_seed == "default":
         random_seed = 2024
@@ -157,32 +153,6 @@ def main():
     trainer.fit(model, datamodule=data_module)
 
     trainer.test(model=model, datamodule=data_module)
-
-    # Evaluar en validación del mejor modelo
-    if checkpoint.best_model_path:
-        best_model = USModel.load_from_checkpoint(
-            checkpoint.best_model_path,
-            model_opts=conf.model_opts,
-            train_par=conf.train_par,
-        )
-        metrics = trainer.validate(best_model, datamodule=data_module)
-        val_iou = metrics[0]["valid_dataset_iou"]
-
-        # Loggear el mejor resultado en WandB
-        wandb.log({"valid dataset iou (best model)": val_iou})
-
-        # Evaluar en test solo si el mejor modelo tiene val_iou > 0.4
-        if val_iou > 0.4:
-            trainer.test(best_model, datamodule=data_module)
-            best_model.log_test_images(
-                data_module,
-                num_images=50,
-                val_iou=val_iou,
-                threshold=0.4,
-                only_roi_frames=True,
-            )
-
-    return val_iou
 
 
 if __name__ == "__main__":

@@ -348,11 +348,11 @@ class USModel(L.LightningModule):
                     # Crear figura con 3 imágenes: original, máscara real y predicción
                     fig, axs = plt.subplots(1, 3, figsize=(12, 4))
                     axs[0].imshow(img_np, cmap="gray")
-                    axs[0].set_title("Imagen Original")
+                    axs[0].set_title("Image")
                     axs[1].imshow(mask_np, cmap="gray")
-                    axs[1].set_title("Máscara Real")
+                    axs[1].set_title("GT")
                     axs[2].imshow(pred_np, cmap="gray")
-                    axs[2].set_title("Predicción")
+                    axs[2].set_title("Pred")
 
                     plt.tight_layout()
 
