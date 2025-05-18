@@ -6,7 +6,7 @@
 #SBATCH --ntasks-per-node=4
 #SBATCH --cpus-per-task=4
 #SBATCH --mem-per-cpu=16G
-#SBATCH --output=test_reserved1.log
+#SBATCH --output=test_reserved2.log
 
 source /software/anaconda3/5.3.0b/bin/activate castane_lab
 
