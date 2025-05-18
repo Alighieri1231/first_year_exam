@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 BASE_CFG=configs/assgan_config_train.yaml
-BASE_DATA=/data/GitHub/first_year_exam/data
+BASE_DATA=/scratch/bcastane_lab/eochoaal/first_year_exam/data
 REPS=(1 2)
 DS_TYPES=(data_uncorrected data_corrected_w_annotation data_corrected_wo_annotation)
 SUFFIXES=(l nl lb lm)
