@@ -9,7 +9,7 @@ model_opts:
 train_par:
   # reproducibilidad y dispositivos
   random_seed: 2024
-  devices: 2
+  devices: 4
   strategy: "ddp_find_unused_parameters_true"
   profiler: False
 
