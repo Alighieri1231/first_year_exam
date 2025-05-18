@@ -19,7 +19,7 @@ train_par:
   workers: 8
 
   # tasas de aprendizaje y regularización (G y D)
-  adam_g: False
+  adam_g: True
   lr_g: 2.5e-4 #0.00025
   lr_d: 0.0001
   weight_decay: 0.0001
