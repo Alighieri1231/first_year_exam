@@ -362,8 +362,16 @@ class USModel(L.LightningModule):
                     )
                     plt.close(fig)  # Cerrar la figura para evitar problemas de memoria
 
-        if wandb_images:
+            # if wandb_images:
             self.log({"Ejemplos de Segmentación": wandb_images})
+        if wandb_images:
+            # key: nombre de la tabla en W&B
+            # images: lista de tensores/arrays/PIL o wandb.Image
+            self.logger.log_image(
+                key="Ejemplos de Segmentación",
+                images=wandb_images,
+            )
+
         else:
             print("No se encontraron imágenes con máscara para loggear.")
 
