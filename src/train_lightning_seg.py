@@ -87,6 +87,7 @@ def main():
 
     # ——— Nombre de la corrida en W&B ———
     tb_exp_name = f"{conf.dataset.experiment}_{args.run_id}"
+
     wandb.init(
         project=conf.dataset.project, entity="ia-lim", config=conf, name=tb_exp_name
     )
@@ -166,7 +167,7 @@ def main():
 
     print(f"Best model path: {model_checkpoint.best_model_path}")
     #   TEST FINAL
-    
+
     trainer.test(model=model, datamodule=data_module)
 
     # Evaluar en validación del mejor modelo
@@ -180,7 +181,7 @@ def main():
         val_iou = metrics[0]["valid_dataset_iou"]
 
         # Loggear el mejor resultado en WandB
-        wandb.log({"valid dataset iou (best model)": val_iou})
+        # wandb.log({"valid dataset iou (best model)": val_iou})
 
         # Evaluar en test solo si el mejor modelo tiene val_iou > 0.4
         if val_iou > conf.train_par.eval_threshold:
