@@ -28,6 +28,9 @@ class WSIDataset(Dataset):
         frame = cv2.imread(self.frame_paths[idx], cv2.IMREAD_GRAYSCALE)
         label = cv2.imread(self.label_paths[idx], cv2.IMREAD_GRAYSCALE)
 
+        # if file name has malignant then category is 1 else 0
+        category = 1 if "malignant" in self.frame_paths[idx] else 0
+
         frame = frame.astype(np.float32) / 255.0
         label = (label == 255).astype(np.float32)
 
@@ -35,4 +38,4 @@ class WSIDataset(Dataset):
             augmented = self.transform(image=frame, mask=label)
             frame, label = augmented["image"], augmented["mask"]
 
-        return {"image": frame, "mask": label}
+        return {"image": frame, "mask": label, "category": category}

@@ -27,6 +27,13 @@ class ASSGAN(L.LightningModule):
         # manual optimization so we can step G and D separately
         self.automatic_optimization = False
 
+        aux_params = dict(
+            pooling="avg",  # GlobalAveragePooling
+            dropout=0.5,  # opcional
+            activation=None,  # logits de cls
+            classes=2,  # # categorías
+        )
+
         # — Generators (each outputs 1‐channel logits) —
         self.generator1 = smp.create_model(
             model_opts.args.arch1,
@@ -34,6 +41,7 @@ class ASSGAN(L.LightningModule):
             in_channels=3,
             classes=1,
             encoder_weights="imagenet",
+            aux_params=aux_params,
         )
         self.generator2 = smp.create_model(
             model_opts.args.arch2,
@@ -41,6 +49,7 @@ class ASSGAN(L.LightningModule):
             in_channels=3,
             classes=1,
             encoder_weights="imagenet",
+            aux_params=aux_params,
         )
 
         # Preprocessors for each generator
@@ -57,6 +66,7 @@ class ASSGAN(L.LightningModule):
         self.register_buffer("mean2", torch.tensor(params2["mean"]).view(1, 3, 1, 1))
         # — Discriminator (takes 1‐channel probability maps) —
         self.discriminator = FCDiscriminator(num_classes=1)
+        self.classification_loss = model_opts.args.classification_loss
 
         # ─── Segmentation loss ───
         # Option A: custom 2D BCE wrapper (handles ignore internally)
@@ -70,6 +80,10 @@ class ASSGAN(L.LightningModule):
         # Option B: pure PyTorch (commented)
         # self.adv_loss = BCEWithLogitsLoss(reduction="mean")
 
+        # ─── Classification loss ───
+        # Option A: custom 2D CrossEntropy wrapper (handles ignore internally)
+        self.clas_loss_fn = nn.CrossEntropyLoss()
+
         # ─── Hyperparameters ───
         self.lr_g = train_par.lr_g
         self.lr_d = train_par.lr_d
@@ -80,6 +94,8 @@ class ASSGAN(L.LightningModule):
         self.lambda_adv = train_par.lambda_adv
         self.lambda_adv_u = train_par.lambda_adv_u  # weight for unlabeled adv loss
         self.lambda_semi = train_par.lambda_semi  # weight for pseudo‐loss
+        self.lambda_clas = train_par.lambda_clas
+        self.lambda_clas_u = train_par.lambda_clas_u  # weight for unlabeled cls loss
         self.supervised_epochs = train_par.supervised_epochs  # e.g. 200
         self.gamma_thresh = train_par.gamma_thresh  # e.g. 0.2
         self.adam_g = train_par.adam_g
@@ -109,6 +125,8 @@ class ASSGAN(L.LightningModule):
         epoch = self.current_epoch
         imgs_l = batch["image"]  # (B,3,H,W)
         masks_l = batch["mask"].unsqueeze(1)  # (B,1,H,W), values {0,1}
+        gt_class = batch["category"]
+
         # print(f"imgs_l.shape: {imgs_l.shape}, masks_l.shape: {masks_l.shape}")
 
         opt_g, opt_d = self.optimizers()
@@ -119,12 +137,20 @@ class ASSGAN(L.LightningModule):
         # Supervised training
 
         # 1) forward
-        pred1 = self.generator1(self.processg1(imgs_l))  # (B,1,H,W) logits
-        pred2 = self.generator2(self.processg2(imgs_l))
+        pred1, logits_clas1 = self.generator1(
+            self.processg1(imgs_l)
+        )  # (B,1,H,W) logits
+        pred2, logits_clas2 = self.generator2(self.processg2(imgs_l))
 
         # 2) segmentation loss on labeled
         loss_seg1 = self.seg_loss(pred1, masks_l)
         loss_seg2 = self.seg_loss(pred2, masks_l)
+
+        loss_clas1 = loss_clas2 = 0.0
+
+        if self.classification_loss:
+            loss_clas1 = self.clas_loss_fn(logits_clas1, gt_class)
+            loss_clas2 = self.clas_loss_fn(logits_clas2, gt_class)
 
         # 3) adversarial “fake” loss  → we want D(sigmoid(pred)) ≈ 1
         prob1 = torch.sigmoid(pred1)
@@ -138,6 +164,7 @@ class ASSGAN(L.LightningModule):
         # optional: unlabeled adversarial
         adv1_u = adv2_u = 0.0
         semi1 = semi2 = 0.0
+        loss_clas1_u = loss_clas2_u = 0.0
         # — after supervised_epochs, pull unlabeled for unsupervised & pseudo —
         if epoch >= self.supervised_epochs and hasattr(
             self.trainer.datamodule, "unlabeled_dataloader"
@@ -155,8 +182,8 @@ class ASSGAN(L.LightningModule):
 
             imgs_u = unlab["image"].to(self.device)  # (B,3,H,W)
             # forward G on unlabeled
-            pred1_u = self.generator1(self.processg1(imgs_u))
-            pred2_u = self.generator2(self.processg2(imgs_u))
+            pred1_u, logits_clas1_u = self.generator1(self.processg1(imgs_u))
+            pred2_u, logits_clas2_u = self.generator2(self.processg2(imgs_u))
             prob1_u = torch.sigmoid(pred1_u)
             prob2_u = torch.sigmoid(pred2_u)
 
@@ -200,12 +227,42 @@ class ASSGAN(L.LightningModule):
             mask2_full = mask2.repeat_interleave(scale, 2).repeat_interleave(scale, 3)
             target1_semi[mask2_full == 0] = 255
             semi1 = self.lambda_semi * self.seg_loss(pred1_u, target1_semi)
+
+            # —— 1) extraer pseudo-etiquetas y confidencias ——
+            if self.classification_loss:
+                probs1_cls = torch.softmax(logits_clas1_u.detach(), dim=1)  # (B,2)
+                conf1_cls, pseudo1_cls = probs1_cls.max(dim=1)  # (B,) ambas
+                probs2_cls = torch.softmax(logits_clas2_u.detach(), dim=1)
+                conf2_cls, pseudo2_cls = probs2_cls.max(dim=1)
+
+                # —— 2) máscaras de confianza alta ——
+                mask1_cls = conf1_cls > self.gamma_thresh  # BoolTensor (B,)
+                mask2_cls = conf2_cls > self.gamma_thresh
+
+                # —— 3) perder clasificación cruzada (solo donde mask==True) ——
+                if mask1_cls.any():
+                    loss_clas2_u = self.lambda_clas_u * self.clas_loss_fn(
+                        logits_clas2_u[mask1_cls],  # pred del G2
+                        pseudo1_cls[mask1_cls],  # pseudo-target de G1
+                    )
+                else:
+                    loss_clas2_u = 0.0
+
+                if mask2_cls.any():
+                    loss_clas1_u = self.lambda_clas_u * self.clas_loss_fn(
+                        logits_clas1_u[mask2_cls],  # pred del G1
+                        pseudo2_cls[mask2_cls],  # pseudo-target de G2
+                    )
+                else:
+                    loss_clas1_u = 0.0
         # combine G losses
         g_loss = (
             self.lambda_seg * (loss_seg1 + loss_seg2)
             + self.lambda_adv * (adv1_l + adv2_l)
             + (adv1_u + adv2_u)
             + (semi1 + semi2)
+            + self.lambda_clas * (loss_clas1 + loss_clas2)
+            + self.lambda_clas_u * (loss_clas1_u + loss_clas2_u)
         )
 
         self.manual_backward(g_loss)

@@ -5,6 +5,7 @@ model_opts:
     encoder_name1: "resnet34"
     arch2: "pspnet"             # nombre de la arquitectura para G2
     encoder_name2: "resnet34"
+    classification_loss: False
 
 train_par:
   # reproducibilidad y dispositivos

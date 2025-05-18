@@ -14,18 +14,27 @@ import numpy as np
 class USModel(L.LightningModule):
     def __init__(self, model_opts, train_par, **kwargs):
         super().__init__()
+
+        aux_params = dict(
+            pooling="avg",  # GlobalAveragePooling
+            dropout=0.5,  # opcional
+            activation=None,  # logits de cls
+            classes=2,  # # categorías
+        )
         self.model = smp.create_model(
             model_opts.args.arch,
             encoder_name=model_opts.args.encoder_name,
             in_channels=model_opts.args.inchannels,
             classes=model_opts.args.outchannels,
             encoder_weights=model_opts.args.encoder_weights,
+            aux_params=aux_params,
             **kwargs,
         )
         self.lr = train_par.lr
         self.weight_decay = train_par.weight_decay
         self.optimizer_name = train_par.optimizer
         self.loss = train_par.loss_opts.name
+        self.classification_loss = model_opts.args.classification_loss
 
         # if self.optimizer is a dict with key 'name':'adamw', convert it to a string only adamw
         if isinstance(self.optimizer_name, dict):
@@ -55,6 +64,8 @@ class USModel(L.LightningModule):
                 smp.losses.BINARY_MODE, from_logits=True, alpha=0.5, beta=0.5
             )
 
+        self.clas_loss_fn = nn.CrossEntropyLoss()
+
         # initialize step metics
         self.training_step_outputs = []
         self.validation_step_outputs = []
@@ -63,11 +74,12 @@ class USModel(L.LightningModule):
     def forward(self, image):
         # normalize image here
         image = (image - self.mean) / self.std
-        mask = self.model(image)
+        mask, pred_cat = self.model(image)
         return mask
 
     def shared_step(self, batch, stage):
         image = batch["image"]
+        gt_class = batch["category"]
 
         # Shape of the image should be (batch_size, num_channels, height, width)
         # if you work with grayscale images, expand channels dim to have [batch_size, 1, height, width]
@@ -88,10 +100,17 @@ class USModel(L.LightningModule):
         # Check that mask values in between 0 and 1, NOT 0 and 255 for binary segmentation
         assert mask.max() <= 1.0 and mask.min() >= 0
 
-        logits_mask = self.forward(image)
+        logits_mask, logits_clas = self.forward(image)
+
+        # loss of classification
+        loss_clas = self.clas_loss_fn(logits_clas, gt_class)
 
         # Predicted mask contains logits, and loss_fn param `from_logits` is set to True
         loss = self.loss_fn(logits_mask, mask)
+
+        if self.classification_loss:
+            # add classification loss to the total loss
+            loss = loss + loss_clas
 
         # Lets compute metrics for some threshold
         # first convert mask values to probabilities, then
