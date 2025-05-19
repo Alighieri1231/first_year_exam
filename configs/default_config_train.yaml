@@ -38,13 +38,13 @@ train_par:
       #for 128x128x128
       beta: 0.5 # this is only for tversky loss
       alpha: 0.5 # this is only for tversky loss
-      gamma: 0.75 #4/3 # this is only for focal loss
+      gamma: 0.75 #4/3 # this is only for focal tversky loss
   #binary num_classes 2, multiclass num_classes outchannel
   num_classes: 2
 
 dataset:
   project: "NETs"
-  experiment: "experiment1_data_uncorrected_r1_pspnet_focaltversky_alpha_0.5_beta_0.5"
+  experiment: "experiment1_data_uncorrected_r1_pspnet_dice"
   data_dir: "/data/GitHub/first_year_exam/data/data_uncorrected"
   train: "/data/GitHub/first_year_exam/data/data_uncorrected/train.csv"
   dev: "/data/GitHub/first_year_exam/data/data_uncorrected/validation.csv"
