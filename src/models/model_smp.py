@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import wandb
 import numpy as np
 from src.utils.loss import FocalTverskyLoss
+import torch.nn.functional as F
 
 
 class USModel(L.LightningModule):
@@ -39,6 +40,7 @@ class USModel(L.LightningModule):
         self.gamma_mom = train_par.loss_opts.args.gamma_mom
         self.gamma_round = train_par.loss_opts.args.gamma_round
         self.gamma_class = train_par.loss_opts.args.gamma_class
+        self.gamma_close = train_par.loss_opts.args.gamma_close
 
         # if self.optimizer is a dict with key 'name':'adamw', convert it to a string only adamw
         if isinstance(self.optimizer_name, dict):
@@ -124,12 +126,19 @@ class USModel(L.LightningModule):
             # loss of classification
             loss_clas = self.clas_loss_fn(logits_clas, gt_class)
             prob_mask = logits_mask.sigmoid()
+            loss_close = self._closing_loss(prob_mask, kernel_size=7)
+
             loss_mom = self._moment_loss(prob_mask, gt_class)
             loss_round = self._roundness_loss(prob_mask, gt_class)
             loss_shape = self.gamma_mom * loss_mom + self.gamma_round * loss_round
 
             # combinación final
-            loss = loss + self.gamma_class * loss_clas + loss_shape
+            loss = (
+                loss
+                + self.gamma_class * loss_clas
+                + loss_shape
+                + self.gamma_close * loss_close
+            )
 
             # logging de métricas auxiliares
             self.log(f"{stage}_loss_mom", loss_mom, prog_bar=False, sync_dist=True)
@@ -485,3 +494,18 @@ class USModel(L.LightningModule):
             target = 1.0 if gt_class[b] == 0 else c_maligno
             losses.append((C - target).pow(2))
         return torch.stack(losses).mean()
+
+    def _closing_loss(self, mask_prob, kernel_size=7):
+        """
+        mask_prob: (B,1,H,W) con probabilidades en [0,1]
+        kernel_size: tamaño de vecindad para cerrar huecos
+        """
+        pad = kernel_size // 2
+        # 1) dilatación suave: max‐pooling
+        dil = F.max_pool2d(mask_prob, kernel_size, stride=1, padding=pad)
+        # 2) erosión suave: negativa de max‐pool sobre negativo
+        ero = -F.max_pool2d(-dil, kernel_size, stride=1, padding=pad)
+        closed = ero
+        # 3) solo penalizamos cuando closed > original
+        diff = closed - mask_prob
+        return torch.clamp(diff, min=0).pow(2).mean()
