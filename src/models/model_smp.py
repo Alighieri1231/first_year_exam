@@ -9,6 +9,7 @@ import torch.optim as optim
 import matplotlib.pyplot as plt
 import wandb
 import numpy as np
+from src.utils.loss import FocalTverskyLoss
 
 
 class USModel(L.LightningModule):
@@ -61,7 +62,18 @@ class USModel(L.LightningModule):
             )
         elif self.loss == "tversky":
             self.loss_fn = smp.losses.TverskyLoss(
-                smp.losses.BINARY_MODE, from_logits=True, alpha=0.5, beta=0.5
+                smp.losses.BINARY_MODE,
+                from_logits=True,
+                alpha=train_par.loss_opts.args.alpha,
+                beta=train_par.loss_opts.args.beta,
+            )
+        elif self.loss == "focal_tversky":
+            self.loss_fn = FocalTverskyLoss(
+                smp.losses.BINARY_MODE,
+                from_logits=True,
+                alpha=train_par.loss_opts.args.alpha,
+                beta=train_par.loss_opts.args.beta,
+                gamma=train_par.loss_opts.args.gamma,
             )
 
         self.clas_loss_fn = nn.CrossEntropyLoss()

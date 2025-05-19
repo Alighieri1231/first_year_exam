@@ -31,19 +31,20 @@ train_par:
   scheduler:
     name: 'step_lr'
   loss_opts:
-    name: 'tversky'
+    name: 'tversky' #dice
     args:
       weight: 0.1 # this is for BCELogits (value will be computed automatically) & BCEDiceLoss (you need to input a value, default: 0.1)
       #alpha: 1 # this is only for focal loss
       #for 128x128x128
-      alpha: [0.0002818244106728816, 0.6997443448962491, 0.03218500222273938, 0.09628542892937603, 0.14095661371987137, 0.030546785821091195]
-      gamma: 3 # this is only for focal loss
+      beta: 0.7 # this is only for tversky loss
+      alpha: 0.3 # this is only for tversky loss
+      gamma: 1.3 #4/3 # this is only for focal loss
   #binary num_classes 2, multiclass num_classes outchannel
   num_classes: 2
 
 dataset:
   project: "NETs"
-  experiment: "experiment1"
+  experiment: "experiment1_data_uncorrected_r1_pspnet_tversky_alpha_0.3_beta_0.7"
   data_dir: "/data/GitHub/first_year_exam/data/data_uncorrected"
   train: "/data/GitHub/first_year_exam/data/data_uncorrected/train.csv"
   dev: "/data/GitHub/first_year_exam/data/data_uncorrected/validation.csv"

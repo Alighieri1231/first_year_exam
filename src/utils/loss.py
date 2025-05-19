@@ -3,7 +3,9 @@ import numpy as np
 import torch.nn.functional as F
 import torch.nn as nn
 from torchvision.ops import sigmoid_focal_loss
-
+import torch
+import torch.nn as nn
+import segmentation_models_pytorch as smp
 from src.utils.utils import *
 
 
@@ -138,6 +140,29 @@ def FocalLoss_weights(y_hat, y, alpha=0.5, gamma=2, logits=False, reduce=True):
 def SigmoidFocalLoss(y_hat, y):
     F_loss = sigmoid_focal_loss(y_hat, y, alpha=0.25, gamma=2, reduction="mean")
     return F_loss
+
+
+class FocalTverskyLoss(nn.Module):
+    def __init__(
+        self,
+        mode=smp.losses.BINARY_MODE,
+        from_logits=True,
+        alpha: float = 0.5,
+        beta: float = 0.5,
+        gamma: float = 1.0,
+    ):
+        super().__init__()
+        self.alpha = alpha
+        self.beta = beta
+        self.gamma = gamma
+        self.tversky = smp.losses.TverskyLoss(
+            mode=mode, from_logits=from_logits, alpha=alpha, beta=beta
+        )
+
+    def forward(self, y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
+        # tversky_loss = 1 - TI
+        tversky_loss = self.tversky(y_pred, y_true)
+        return tversky_loss.pow(self.gamma)
 
 
 # def NLLLoss(y_hat, y):
@@ -502,7 +527,7 @@ class BCEWithLogitsLoss2d(nn.Module):
         assert predict.dim() == 4
         assert target.dim() == 4
         n, c, h, w = predict.size()
-        #print (f"predict.shape: {predict.shape}, target.shape: {target.shape}")
+        # print (f"predict.shape: {predict.shape}, target.shape: {target.shape}")
         target_mask = (target >= 0) & (target != self.ignore_label)
         target = target[target_mask]
         if not target.dim():
