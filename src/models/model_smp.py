@@ -36,6 +36,9 @@ class USModel(L.LightningModule):
         self.optimizer_name = train_par.optimizer
         self.loss = train_par.loss_opts.name
         self.classification_loss = model_opts.args.classification_loss
+        self.gamma_mom = train_par.loss_opts.args.gamma_mom
+        self.gamma_round = train_par.loss_opts.args.gamma_round
+        self.gamma_class = train_par.loss_opts.args.gamma_class
 
         # if self.optimizer is a dict with key 'name':'adamw', convert it to a string only adamw
         if isinstance(self.optimizer_name, dict):
@@ -114,15 +117,23 @@ class USModel(L.LightningModule):
 
         logits_mask, logits_clas = self.forward(image)
 
-        # loss of classification
-        loss_clas = self.clas_loss_fn(logits_clas, gt_class)
-
         # Predicted mask contains logits, and loss_fn param `from_logits` is set to True
         loss = self.loss_fn(logits_mask, mask)
 
         if self.classification_loss:
-            # add classification loss to the total loss
-            loss = loss + 1 * loss_clas
+            # loss of classification
+            loss_clas = self.clas_loss_fn(logits_clas, gt_class)
+            prob_mask = logits_mask.sigmoid()
+            loss_mom = self._moment_loss(prob_mask, gt_class)
+            loss_round = self._roundness_loss(prob_mask, gt_class)
+            loss_shape = self.gamma_mom * loss_mom + self.gamma_round * loss_round
+
+            # combinación final
+            loss = loss + self.gamma_class * loss_clas + loss_shape
+
+            # logging de métricas auxiliares
+            self.log(f"{stage}_loss_mom", loss_mom, prog_bar=False, sync_dist=True)
+            self.log(f"{stage}_loss_round", loss_round, prog_bar=False, sync_dist=True)
 
         # Lets compute metrics for some threshold
         # first convert mask values to probabilities, then
@@ -428,3 +439,49 @@ class USModel(L.LightningModule):
                 "frequency": 1,
             },
         }
+
+    def _moment_loss(self, mask_prob, gt_class):
+        """
+        Penaliza la excentricidad e = (μ20 - μ02)/(μ20 + μ02).
+        Queremos e≈0 en benignos, y menos restricción en malignos.
+        mask_prob: (B,1,H,W) probabilidades
+        gt_class: (B,) 0=benigno,1=maligno
+        """
+        B, _, H, W = mask_prob.shape
+        # coordenadas
+        ii = torch.arange(H, device=mask_prob.device).view(1, H, 1).float()
+        jj = torch.arange(W, device=mask_prob.device).view(1, 1, W).float()
+        losses = []
+        for b in range(B):
+            m = mask_prob[b, 0]
+            A = m.sum() + 1e-6
+            i_bar = (ii * m).sum() / A
+            j_bar = (jj * m).sum() / A
+            mu20 = (((ii - i_bar) ** 2) * m).sum()
+            mu02 = (((jj - j_bar) ** 2) * m).sum()
+            e = (mu20 - mu02) / (mu20 + mu02 + 1e-6)
+            if gt_class[b] == 0:  # benigno → penalizar e≈0
+                losses.append(e.pow(2))
+            else:  # maligno → menos restricción (o alentar |e|>c)
+                losses.append(torch.zeros_like(e))
+        return torch.stack(losses).mean()
+
+    def _roundness_loss(self, mask_prob, gt_class):
+        """
+        Penaliza la compacidad C = 4πA/P^2.
+        Target C=1 en benigno, C=c en maligno (e.g. 0.7).
+        """
+        B, _, H, W = mask_prob.shape
+        losses = []
+        c_maligno = 0.7  # objetivo de redondez para malignos
+        for b in range(B):
+            m = mask_prob[b, 0]
+            A = m.sum() + 1e-6
+            # perímetro aproximado
+            dx = torch.abs(m[:, 1:] - m[:, :-1]).sum()
+            dy = torch.abs(m[1:, :] - m[:-1, :]).sum()
+            P = dx + dy + 1e-6
+            C = 4 * np.pi * A / (P**2)
+            target = 1.0 if gt_class[b] == 0 else c_maligno
+            losses.append((C - target).pow(2))
+        return torch.stack(losses).mean()
