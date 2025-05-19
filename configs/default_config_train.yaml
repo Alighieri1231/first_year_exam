@@ -38,7 +38,7 @@ train_par:
       #for 128x128x128
       beta: 0.7 # this is only for tversky loss
       alpha: 0.3 # this is only for tversky loss
-      gamma: 1.3 #4/3 # this is only for focal loss
+      gamma: 0.75 #4/3 # this is only for focal loss
   #binary num_classes 2, multiclass num_classes outchannel
   num_classes: 2
 
