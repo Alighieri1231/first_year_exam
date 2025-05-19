@@ -473,7 +473,7 @@ class USModel(L.LightningModule):
         """
         B, _, H, W = mask_prob.shape
         losses = []
-        c_maligno = 0.7  # objetivo de redondez para malignos
+        c_maligno = 0.3  # objetivo de redondez para malignos
         for b in range(B):
             m = mask_prob[b, 0]
             A = m.sum() + 1e-6
