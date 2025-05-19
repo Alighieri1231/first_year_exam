@@ -93,6 +93,9 @@ class WSIDataModule(L.LightningDataModule):
             labeled_idx = all_idx[:100]  # primeros 100
             unlabeled_idx = all_idx[100:]  # el resto (~447)
 
+            print('train file:', self.train_file)
+            print('data dir:', self.data_dir)
+
             print(f"labeled_idx: {labeled_idx}")
             print(f"unlabeled_idx: {unlabeled_idx}")
 
