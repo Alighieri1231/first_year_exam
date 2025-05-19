@@ -93,6 +93,9 @@ class WSIDataModule(L.LightningDataModule):
             labeled_idx = all_idx[:100]  # primeros 100
             unlabeled_idx = all_idx[100:]  # el resto (~447)
 
+            print(f"labeled_idx: {labeled_idx}")
+            print(f"unlabeled_idx: {unlabeled_idx}")
+
             # 3) Crea los subsets
             self.train_dataset = Subset(full_train, labeled_idx)
             self.unlabeled_dataset = Subset(full_train, unlabeled_idx)
