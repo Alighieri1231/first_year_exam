@@ -1,5 +1,5 @@
-from topologylayer.util.construction import clique_complex
-from topologylayer.functional.flag import FlagDiagram
+from src.topologylayer.util.construction import clique_complex
+from src.topologylayer.functional.flag import FlagDiagram
 
 import torch
 import torch.nn as nn

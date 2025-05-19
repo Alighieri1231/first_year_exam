@@ -1,6 +1,6 @@
 from ..functional.sublevel import SubLevelSetDiagram
-from topologylayer.functional.persistence import SimplicialComplex
-from topologylayer.util.construction import unique_simplices
+from src.topologylayer.functional.persistence import SimplicialComplex
+from src.topologylayer.util.construction import unique_simplices
 
 import torch
 import torch.nn as nn

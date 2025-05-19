@@ -1,6 +1,6 @@
-from topologylayer.util.construction import unique_simplices
-from topologylayer.functional.flag import FlagDiagram
-from topologylayer.functional.persistence import SimplicialComplex
+from src.topologylayer.util.construction import unique_simplices
+from src.topologylayer.functional.flag import FlagDiagram
+from src.topologylayer.functional.persistence import SimplicialComplex
 from scipy.spatial import Delaunay
 
 import torch
@@ -17,8 +17,8 @@ def delaunay_complex_1d(x):
     # append cells in sorted order
     s.append([inds[0]])
     for ii in range(len(inds) - 1):
-        s.append([inds[ii+1]])
-        s.append([inds[ii], inds[ii+1]])
+        s.append([inds[ii + 1]])
+        s.append([inds[ii], inds[ii + 1]])
     return s
 
 
@@ -48,7 +48,8 @@ class AlphaLayer(nn.Module):
             'hom' = homology (default)
             'cohom' = cohomology
     """
-    def __init__(self, maxdim=0, alg='hom'):
+
+    def __init__(self, maxdim=0, alg="hom"):
         super(AlphaLayer, self).__init__()
         self.maxdim = maxdim
         self.fnobj = FlagDiagram()
@@ -61,7 +62,7 @@ class AlphaLayer(nn.Module):
             xnp = xnp.flatten()
             complex = delaunay_complex_1d(xnp)
         else:
-            complex = delaunay_complex(xnp, maxdim=self.maxdim+1)
+            complex = delaunay_complex(xnp, maxdim=self.maxdim + 1)
         complex.initialize()
         dgms = self.fnobj.apply(complex, x, self.maxdim, self.alg)
         return dgms, True

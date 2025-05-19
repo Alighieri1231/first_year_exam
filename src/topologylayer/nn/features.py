@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from topologylayer.util.process import remove_zero_bars
+from src.topologylayer.util.process import remove_zero_bars
 
 def get_start_end(dgm, issublevel):
     """
