@@ -9,7 +9,7 @@ model_opts:
     encoder_weights: imagenet #imagenet default, null for no pretraining
     # FPN The net_depth will change accordingly to the patch size. For 128x128 it is 3, for 256x256 it is 4. This will define the number of layers of the architecture.
     net_depth: 5
-    classification_loss: True
+    classification_loss: False
 
 train_par:
   gpu_to_use: "cuda:0" # 'cuda:1', select the GPU where you want your training. if 'default' it will use torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -31,21 +31,21 @@ train_par:
   scheduler:
     name: 'step_lr'
   loss_opts:
-    name: 'tversky' #dice
+    name: 'dicetopk' #dice
     args:
       weight: 0.1 # this is for BCELogits (value will be computed automatically) & BCEDiceLoss (you need to input a value, default: 0.1)
       #alpha: 1 # this is only for focal loss
       #for 128x128x128
       beta: 0.7 # this is only for tversky loss
-      alpha: 0.3 # this is only for tversky loss
-      gamma: 0.75 #4/3 # this is only for focal tversky loss
+      alpha: 0.5 #0.3 # this is only for tversky loss
+      gamma: 0.5 #0.75 #4/3 # this is only for focal tversky loss
       gamma_mom: 0.05 # this is only for moment loss
       gamma_round: 0.05 # this is only for round loss
       gamma_class: 0.05 # this is only for classification loss
       gamma_close: 0.1 #0.05 # this is only for close loss
       gamma_topo: 0.05 # this is only for topology loss
   #binary num_classes 2, multiclass num_classes outchannel
-  num_classes: 2s
+  num_classes: 2
 
 dataset:
   project: "NETs"
