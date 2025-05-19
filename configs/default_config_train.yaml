@@ -9,7 +9,7 @@ model_opts:
     encoder_weights: imagenet #imagenet default, null for no pretraining
     # FPN The net_depth will change accordingly to the patch size. For 128x128 it is 3, for 256x256 it is 4. This will define the number of layers of the architecture.
     net_depth: 5
-    classification_loss: False
+    classification_loss: True
 
 train_par:
   gpu_to_use: "cuda:0" # 'cuda:1', select the GPU where you want your training. if 'default' it will use torch.device("cuda" if torch.cuda.is_available() else "cpu")
