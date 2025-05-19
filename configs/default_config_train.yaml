@@ -31,7 +31,7 @@ train_par:
   scheduler:
     name: 'step_lr'
   loss_opts:
-    name: 'tversky' #dice
+    name: 'focal_tversky' #dice
     args:
       weight: 0.1 # this is for BCELogits (value will be computed automatically) & BCEDiceLoss (you need to input a value, default: 0.1)
       #alpha: 1 # this is only for focal loss
