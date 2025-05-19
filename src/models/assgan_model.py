@@ -181,7 +181,6 @@ class ASSGAN(L.LightningModule):
                 unlab = next(self.unlab_iter)
 
             imgs_u = unlab["image"].to(self.device)  # (B,3,H,W)
-            print(f"imgs_u.shape: {imgs_u.shape}")
             # forward G on unlabeled
             pred1_u, logits_clas1_u = self.generator1(self.processg1(imgs_u))
             pred2_u, logits_clas2_u = self.generator2(self.processg2(imgs_u))

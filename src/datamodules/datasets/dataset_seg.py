@@ -10,7 +10,6 @@ class WSIDataset(Dataset):
         # 1) Cargo el CSV con los nombres base
         df = pd.read_csv(meta_data)
         filenames = df["file_name"].tolist()
-        print(f"filenames: {filenames}")
 
         # 2) Construyo las rutas a imágenes y máscaras
         self.frame_paths = [os.path.join(root_dir, "gt", fname) for fname in filenames]
