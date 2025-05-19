@@ -1,3 +1,3 @@
-import topologylayer.nn
-import topologylayer.functional
-from topologylayer.functional.persistence import SimplicialComplex
+import src.topologylayer.nn
+import src.topologylayer.functional
+from src.topologylayer.functional.persistence import SimplicialComplex
