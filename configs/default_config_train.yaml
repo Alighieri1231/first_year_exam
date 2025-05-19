@@ -43,6 +43,7 @@ train_par:
       gamma_round: 0.05 # this is only for round loss
       gamma_class: 0.05 # this is only for classification loss
       gamma_close: 0.05 # this is only for close loss
+      gamma_topo: 0.05 # this is only for topology loss
   #binary num_classes 2, multiclass num_classes outchannel
   num_classes: 2s
 

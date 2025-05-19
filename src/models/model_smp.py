@@ -11,6 +11,7 @@ import wandb
 import numpy as np
 from src.utils.loss import FocalTverskyLoss
 import torch.nn.functional as F
+from topologylayer.nn import LevelSetLayer2D, PartialSumBarcodeLengths
 
 
 class USModel(L.LightningModule):
@@ -41,6 +42,7 @@ class USModel(L.LightningModule):
         self.gamma_round = train_par.loss_opts.args.gamma_round
         self.gamma_class = train_par.loss_opts.args.gamma_class
         self.gamma_close = train_par.loss_opts.args.gamma_close
+        self.gamma_topo = train_par.loss_opts.args.gamma_topo
 
         # if self.optimizer is a dict with key 'name':'adamw', convert it to a string only adamw
         if isinstance(self.optimizer_name, dict):
@@ -132,12 +134,22 @@ class USModel(L.LightningModule):
             loss_round = self._roundness_loss(prob_mask, gt_class)
             loss_shape = self.gamma_mom * loss_mom + self.gamma_round * loss_round
 
+            B = prob_mask.shape[0]
+            loss_topo = 0.0
+            # for b in range(B):
+            #     # Level‐set → persistence diagram
+            #     dgms, issub = self.pdfn(prob_mask[b, 0])
+            #     # Penaliza CC extras (skip=1)
+            #     loss_topo += self.topo_cc((dgms, issub))
+            # loss_topo = loss_topo / B
+
             # combinación final
             loss = (
                 loss
                 + self.gamma_class * loss_clas
                 + loss_shape
                 + self.gamma_close * loss_close
+                + self.gamma_topo * loss_topo
             )
 
             # logging de métricas auxiliares
