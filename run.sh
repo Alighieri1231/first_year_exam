@@ -2,7 +2,7 @@
 BASE_CFG=configs/default_config_train.yaml
 BASE_DATA=/data/GitHub/first_year_exam/data
 REPS=(1 2 3)
-ARCHS=(pspnet manet netplusplus unet deeplabv3plus)
+ARCHS=(pspnet manet unetplusplus unet deeplabv3plus)
 CMD="python -m src.train_lightning_seg"
 
 #
