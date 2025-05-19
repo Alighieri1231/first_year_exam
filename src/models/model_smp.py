@@ -11,6 +11,7 @@ import wandb
 import numpy as np
 from src.utils.loss import FocalTverskyLoss
 import torch.nn.functional as F
+from src.utils.loss import BCEWithLogitsLoss2d
 
 
 class USModel(L.LightningModule):
@@ -81,6 +82,8 @@ class USModel(L.LightningModule):
                 beta=train_par.loss_opts.args.beta,
                 gamma=train_par.loss_opts.args.gamma,
             )
+        elif self.loss == "bce":
+            self.loss_fn = BCEWithLogitsLoss2d(ignore_label=255)
 
         self.clas_loss_fn = nn.CrossEntropyLoss()
 
