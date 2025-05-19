@@ -16,7 +16,7 @@ train_par:
 
   # ciclo de entrenamiento
   epochs: 3 #700
-  batch_size: 256
+  batch_size: 128 #256
   workers: 8
 
   # tasas de aprendizaje y regularización (G y D)
