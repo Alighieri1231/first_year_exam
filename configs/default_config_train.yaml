@@ -36,7 +36,7 @@ train_par:
       weight: 0.1 # this is for BCELogits (value will be computed automatically) & BCEDiceLoss (you need to input a value, default: 0.1)
       #alpha: 1 # this is only for focal loss
       #for 128x128x128
-      beta: 0.7 # this is only for tversky loss
+      beta: 0.5 # this is only for tversky loss
       alpha: 0.5 #0.3 # this is only for tversky loss
       gamma: 0.5 #0.75 #4/3 # this is only for focal tversky loss
       gamma_mom: 0.05 # this is only for moment loss
