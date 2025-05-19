@@ -181,6 +181,7 @@ class ASSGAN(L.LightningModule):
                 unlab = next(self.unlab_iter)
 
             imgs_u = unlab["image"].to(self.device)  # (B,3,H,W)
+            print(f"imgs_u.shape: {imgs_u.shape}")
             # forward G on unlabeled
             pred1_u, logits_clas1_u = self.generator1(self.processg1(imgs_u))
             pred2_u, logits_clas2_u = self.generator2(self.processg2(imgs_u))
@@ -497,8 +498,8 @@ class ASSGAN(L.LightningModule):
                 img = batch["image"].to(device)  # (1,3,H,W)
                 gt = batch["mask"].to(device)  # (1,H,W)
                 # preprocesos y forward G1/G2
-                logits1,_ = self.generator1(self.processg1(img))
-                logits2,_ = self.generator2(self.processg2(img))
+                logits1, _ = self.generator1(self.processg1(img))
+                logits2, _ = self.generator2(self.processg2(img))
                 prob1 = torch.sigmoid(logits1) > 0.5
                 prob2 = torch.sigmoid(logits2) > 0.5
 
