@@ -2,8 +2,8 @@
 BASE_CFG=configs/assgan_config_train.yaml
 BASE_DATA=/scratch/bcastane_lab/eochoaal/first_year_exam/data
 REPS=(1)
-#DS_TYPES=(data_uncorrected data_corrected_w_annotation data_corrected_wo_annotation)
-DS_TYPES=(data_corrected_w_annotation data_corrected_wo_annotation)
+DS_TYPES=(data_uncorrected data_corrected_w_annotation data_corrected_wo_annotation)
+#DS_TYPES=(data_corrected_w_annotation data_corrected_wo_annotation)
 
 SUFFIXES=(l nl lb lm)
 GAMMAS=(0.2 0.5 0.8)
