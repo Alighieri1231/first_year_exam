@@ -11,7 +11,7 @@ import wandb
 import numpy as np
 from src.utils.loss import FocalTverskyLoss
 import torch.nn.functional as F
-#from topologylayer.nn import LevelSetLayer2D, PartialSumBarcodeLengths
+from src.topologylayer.nn import LevelSetLayer2D, PartialSumBarcodeLengths
 
 
 class USModel(L.LightningModule):
