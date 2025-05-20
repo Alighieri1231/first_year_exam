@@ -44,6 +44,7 @@ class USModel(L.LightningModule):
         self.gamma_close = train_par.loss_opts.args.gamma_close
         self.gamma_topo = train_par.loss_opts.args.gamma_topo
 
+        self.binary_split = model_opts.args.binary_split
         # if self.optimizer is a dict with key 'name':'adamw', convert it to a string only adamw
         if isinstance(self.optimizer_name, dict):
             self.optimizer_name = self.optimizer_name["name"]
@@ -100,118 +101,172 @@ class USModel(L.LightningModule):
 
     def shared_step(self, batch, stage):
         image = batch["image"]
-        gt_class = batch["category"].to(self.device)
-
-        # Shape of the image should be (batch_size, num_channels, height, width)
-        # if you work with grayscale images, expand channels dim to have [batch_size, 1, height, width]
-        assert image.ndim == 4
-        # Check that image dimensions are divisible by 32,
-        # encoder and decoder connected by `skip connections` and usually encoder have 5 stages of
-        # downsampling by factor 2 (2 ^ 5 = 32); e.g. if we have image with shape 65x65 we will have
-        # following shapes of features in encoder and decoder: 84, 42, 21, 10, 5 -> 5, 10, 20, 40, 80
-        # and we will get an error trying to concat these features
-        h, w = image.shape[2:]
-        assert h % 32 == 0 and w % 32 == 0
-
-        mask = batch["mask"]
-        # mask is (B,H,W) expand to (B, 1, H, W)
-        mask = mask.unsqueeze(1)
-        assert mask.ndim == 4
-
-        # Check that mask values in between 0 and 1, NOT 0 and 255 for binary segmentation
-        assert mask.max() <= 1.0 and mask.min() >= 0
+        mask = batch["mask"].unsqueeze(1)
+        gt_class = batch["category"].to(self.device)  # 0=benigno, 1=maligno
 
         logits_mask, logits_clas = self.forward(image)
-
-        # Predicted mask contains logits, and loss_fn param `from_logits` is set to True
         loss = self.loss_fn(logits_mask, mask)
-
         if self.classification_loss:
-            # loss of classification
-            loss_clas = self.clas_loss_fn(logits_clas, gt_class)
-            prob_mask = logits_mask.sigmoid()
-            loss_close = self._closing_loss(prob_mask, kernel_size=7)
+            loss += self._add_classification_losses(logits_clas, gt_class, logits_mask)
 
-            loss_mom = self._moment_loss(prob_mask, gt_class)
-            loss_round = self._roundness_loss(prob_mask, gt_class)
-            loss_shape = self.gamma_mom * loss_mom + self.gamma_round * loss_round
-
-            # combinación final
-            loss = (
-                loss
-                + self.gamma_class * loss_clas
-                + loss_shape
-                + self.gamma_close * loss_close
-            )
-
-            # logging de métricas auxiliares
-            self.log(f"{stage}_loss_mom", loss_mom, prog_bar=False, sync_dist=True)
-            self.log(f"{stage}_loss_round", loss_round, prog_bar=False, sync_dist=True)
-
-        # Lets compute metrics for some threshold
-        # first convert mask values to probabilities, then
-        # apply thresholding
+        # probabilidades y predicción binaria
         prob_mask = logits_mask.sigmoid()
         pred_mask = (prob_mask > 0.5).float()
 
-        # We will compute IoU metric by two ways
-        #   1. dataset-wise
-        #   2. image-wise
-        # but for now we just compute true positive, false positive, false negative and
-        # true negative 'pixels' for each image and class
-        # these values will be aggregated in the end of an epoch
+        # Si no pedimos split, devolvemos solo stats globales
+        if not self.binary_split:
+            tp, fp, fn, tn = smp.metrics.get_stats(
+                pred_mask.long(), mask.long(), mode="binary"
+            )
+            out = {
+                "loss": loss,
+                "tp": tp,
+                "fp": fp,
+                "fn": fn,
+                "tn": tn,
+            }
+            if self.classification_loss:
+                acc_clas = (logits_clas.argmax(1) == gt_class).float().mean()
+                self.log(f"{stage}_acc_clas", acc_clas, prog_bar=True, sync_dist=True)
+            return out
+
+        # ——————————————————————————————————————————————
+        # Si self.binary_split=True: calculamos stats por clase
+        # ——————————————————————————————————————————————
+        # stats globales
         tp, fp, fn, tn = smp.metrics.get_stats(
             pred_mask.long(), mask.long(), mode="binary"
         )
 
-        if self.classification_loss:
-            with torch.no_grad():
-                acc_clas = (logits_clas.argmax(dim=1) == gt_class).float().mean()
-            self.log(f"{stage}_acc_clas", acc_clas, prog_bar=True, sync_dist=True)
-        return {
+        # máscara de índices
+        benign_idx = gt_class == 0
+        malignant_idx = gt_class == 1
+        zeros = torch.tensor(0, device=self.device)
+
+        # stats benignos
+        if benign_idx.any():
+            tp_b, fp_b, fn_b, tn_b = smp.metrics.get_stats(
+                pred_mask[benign_idx].long(),
+                mask[benign_idx].long(),
+                mode="binary",
+            )
+        else:
+            tp_b = fp_b = fn_b = tn_b = zeros
+
+        # stats malignos
+        if malignant_idx.any():
+            tp_m, fp_m, fn_m, tn_m = smp.metrics.get_stats(
+                pred_mask[malignant_idx].long(),
+                mask[malignant_idx].long(),
+                mode="binary",
+            )
+        else:
+            tp_m = fp_m = fn_m = tn_m = zeros
+
+        out = {
             "loss": loss,
+            # globales
             "tp": tp,
             "fp": fp,
             "fn": fn,
             "tn": tn,
+            # benignos
+            "tp_b": tp_b,
+            "fp_b": fp_b,
+            "fn_b": fn_b,
+            "tn_b": tn_b,
+            # malignos
+            "tp_m": tp_m,
+            "fp_m": fp_m,
+            "fn_m": fn_m,
+            "tn_m": tn_m,
         }
+        if self.classification_loss:
+            acc_clas = (logits_clas.argmax(1) == gt_class).float().mean()
+            self.log(f"{stage}_acc_clas", acc_clas, prog_bar=True, sync_dist=True)
+        return out
 
     def shared_epoch_end(self, outputs, stage):
-        # aggregate step metics
+        # Si no pedimos split, solo usamos las stats globales
+        if not self.binary_split:
+            tp = torch.cat([x["tp"] for x in outputs])
+            fp = torch.cat([x["fp"] for x in outputs])
+            fn = torch.cat([x["fn"] for x in outputs])
+            tn = torch.cat([x["tn"] for x in outputs])
+
+            per_image_iou = smp.metrics.iou_score(
+                tp, fp, fn, tn, reduction="micro-imagewise"
+            )
+            dataset_iou = smp.metrics.iou_score(tp, fp, fn, tn, reduction="micro")
+            per_image_f1 = smp.metrics.f1_score(
+                tp, fp, fn, tn, reduction="micro-imagewise"
+            )
+            dataset_f1 = smp.metrics.f1_score(tp, fp, fn, tn, reduction="micro")
+            per_image_acc = smp.metrics.accuracy(
+                tp, fp, fn, tn, reduction="micro-imagewise"
+            )
+            dataset_acc = smp.metrics.accuracy(tp, fp, fn, tn, reduction="micro")
+
+            metrics = {
+                f"{stage}_per_image_iou": per_image_iou,
+                f"{stage}_dataset_iou": dataset_iou,
+                f"{stage}_per_image_f1": per_image_f1,
+                f"{stage}_dataset_f1": dataset_f1,
+                f"{stage}_per_image_acc": per_image_acc,
+                f"{stage}_dataset_acc": dataset_acc,
+            }
+            self.log_dict(metrics, prog_bar=True, sync_dist=True)
+            return
+
+        # ——————————————————————————————————————————————
+        # Si self.binary_split=True: agregamos global + por clase
+        # ——————————————————————————————————————————————
+        # empaquetar stats globales
         tp = torch.cat([x["tp"] for x in outputs])
         fp = torch.cat([x["fp"] for x in outputs])
         fn = torch.cat([x["fn"] for x in outputs])
         tn = torch.cat([x["tn"] for x in outputs])
+        # benignos
+        tp_b = torch.cat([x["tp_b"] for x in outputs])
+        fp_b = torch.cat([x["fp_b"] for x in outputs])
+        fn_b = torch.cat([x["fn_b"] for x in outputs])
+        tn_b = torch.cat([x["tn_b"] for x in outputs])
+        # malignos
+        tp_m = torch.cat([x["tp_m"] for x in outputs])
+        fp_m = torch.cat([x["fp_m"] for x in outputs])
+        fn_m = torch.cat([x["fn_m"] for x in outputs])
+        tn_m = torch.cat([x["tn_m"] for x in outputs])
 
-        # per image IoU means that we first calculate IoU score for each image
-        # and then compute mean over these scores
-        per_image_iou = smp.metrics.iou_score(
-            tp, fp, fn, tn, reduction="micro-imagewise"
-        )
+        # funciones helper para no repetir
+        def _make_metrics(tp, fp, fn, tn, suffix=""):
+            return {
+                f"{stage}_per_image_iou{suffix}": smp.metrics.iou_score(
+                    tp, fp, fn, tn, reduction="micro-imagewise"
+                ),
+                f"{stage}_dataset_iou{suffix}": smp.metrics.iou_score(
+                    tp, fp, fn, tn, reduction="micro"
+                ),
+                f"{stage}_per_image_f1{suffix}": smp.metrics.f1_score(
+                    tp, fp, fn, tn, reduction="micro-imagewise"
+                ),
+                f"{stage}_dataset_f1{suffix}": smp.metrics.f1_score(
+                    tp, fp, fn, tn, reduction="micro"
+                ),
+                f"{stage}_per_image_acc{suffix}": smp.metrics.accuracy(
+                    tp, fp, fn, tn, reduction="micro-imagewise"
+                ),
+                f"{stage}_dataset_acc{suffix}": smp.metrics.accuracy(
+                    tp, fp, fn, tn, reduction="micro"
+                ),
+            }
 
-        # dataset IoU means that we aggregate intersection and union over whole dataset
-        # and then compute IoU score. The difference between dataset_iou and per_image_iou scores
-        # in this particular case will not be much, however for dataset
-        # with "empty" images (images without target class) a large gap could be observed.
-        # Empty images influence a lot on per_image_iou and much less on dataset_iou.
-        dataset_iou = smp.metrics.iou_score(tp, fp, fn, tn, reduction="micro")
-
-        per_image_f1 = smp.metrics.f1_score(tp, fp, fn, tn, reduction="micro-imagewise")
-        dataset_f1 = smp.metrics.f1_score(tp, fp, fn, tn, reduction="micro")
-
-        per_image_acc = smp.metrics.accuracy(
-            tp, fp, fn, tn, reduction="micro-imagewise"
-        )
-        dataset_acc = smp.metrics.accuracy(tp, fp, fn, tn, reduction="micro")
-
-        metrics = {
-            f"{stage}_per_image_iou": per_image_iou,
-            f"{stage}_dataset_iou": dataset_iou,
-            f"{stage}_per_image_f1": per_image_f1,
-            f"{stage}_dataset_f1": dataset_f1,
-            f"{stage}_per_image_acc": per_image_acc,
-            f"{stage}_dataset_acc": dataset_acc,
-        }
+        metrics = {}
+        # globales
+        metrics.update(_make_metrics(tp, fp, fn, tn))
+        # benignos
+        metrics.update(_make_metrics(tp_b, fp_b, fn_b, tn_b, suffix="_benign"))
+        # malignos
+        metrics.update(_make_metrics(tp_m, fp_m, fn_m, tn_m, suffix="_malignant"))
 
         self.log_dict(metrics, prog_bar=True, sync_dist=True)
 

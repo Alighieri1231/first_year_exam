@@ -2,8 +2,8 @@
 BASE_CFG=configs/default_config_train.yaml
 BASE_DATA=/data/GitHub/first_year_exam/data
 REPS=(1 2 3)
-#ARCHS=(pspnet manet unetplusplus unet deeplabv3plus)
-ARCHS=(unetplusplus)
+ARCHS=(pspnet manet unetplusplus unet deeplabv3plus)
+#ARCHS=(unetplusplus)
 CMD="python -m src.train_lightning_seg"
 
 #
@@ -31,7 +31,9 @@ done
 #
 # 2) Sufijos dentro de data_uncorrected × réplicas × archs
 #
-SUFFIXES=(l nl lb lm)
+#SUFFIXES=(l nl lb lm)
+SUFFIXES=(l nl)
+
 for rep in "${REPS[@]}"; do
   for suf in "${SUFFIXES[@]}"; do
     for arch in "${ARCHS[@]}"; do
