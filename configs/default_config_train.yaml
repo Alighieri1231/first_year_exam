@@ -24,7 +24,7 @@ train_par:
   lr: 0.001
   weight_decay: 0.001
   eval_threshold: 0.1
-  patience: 15
+  patience: 40
   early_stopping_flag: True
   results_path: "/data/GitHub/first_year_exam/results"
   optimizer:
