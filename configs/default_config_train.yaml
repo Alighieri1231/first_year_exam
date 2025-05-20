@@ -50,7 +50,7 @@ train_par:
 
 dataset:
   project: "NETs unlabel splitted"
-  experiment: "e"
+  experiment: ""
   data_dir: "/data/GitHub/first_year_exam/data/data_uncorrected"
   train: "/data/GitHub/first_year_exam/data/data_uncorrected/train.csv"
   dev: "/data/GitHub/first_year_exam/data/data_uncorrected/validation.csv"

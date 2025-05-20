@@ -128,7 +128,7 @@ class WSIDataModule(L.LightningDataModule):
     def test_dataloader(self):
         return DataLoader(
             self.test_dataset,
-            batch_size=16,
+            batch_size=64,
             shuffle=False,
             num_workers=self.workers,
             pin_memory=True,

@@ -49,7 +49,7 @@ train_par:
 
 dataset:
   project: "ASSGAN splitted" 
-  experiment: "experiment"
+  experiment: ""
   data_dir: "/scratch/bcastane_lab/eochoaal/first_year_exam/data/data_uncorrected"
   train: "/data/GitHub/first_year_exam/data/data_uncorrected/train.csv" #/data_uncorrected/train.csv"
   dev: "/data/GitHub/first_year_exam/data/data_uncorrected/validation.csv" #data_uncorrected/validation.csv"

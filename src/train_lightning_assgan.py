@@ -60,6 +60,12 @@ def main():
         type=float,
         help="Reemplaza conf.train_par.gamma_thresh",
     )
+    parser.add_argument(
+        "--binary-split",
+        type=str,
+        choices=["True", "False"],
+        help="Reemplaza conf.model_opts.args.binary_split",
+    )
 
     args = parser.parse_args()
 
@@ -76,6 +82,8 @@ def main():
         conf.dataset.test = args.test_file_override
     if args.gamma_thresh_override is not None:
         conf.train_par.gamma_thresh = args.gamma_thresh_override
+    if args.binary_split is not None:
+        conf.model_opts.args.binary_split = args.binary_split
 
     torch.set_float32_matmul_precision("medium")
     data_dir = conf.dataset.data_dir

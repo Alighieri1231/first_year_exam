@@ -58,6 +58,12 @@ def main():
         choices=["pspnet", "manet", "unetplusplus", "unet", "deeplabv3plus"],
         help="Override de la arquitectura (model_opts.arch)",
     )
+    parser.add_argument(
+        "--binary-split",
+        type=str,
+        default=None,
+        help="Override de la arquitectura (model_opts.args.binary_split)",
+    )
     args = parser.parse_args()
 
     # ——— Carga del YAML de configuración ———
@@ -75,6 +81,8 @@ def main():
     if args.arch_override:
         # sobreescribimos arch y lo pasamos a mayúsculas como en tu YAML original si lo necesitas
         conf.model_opts.arch = args.arch_override
+    if args.binary_split:
+        conf.model_opts.args.binary_split = args.binary_split
 
     # ——— Variables actualizadas desde conf ———
     torch.set_float32_matmul_precision("medium")

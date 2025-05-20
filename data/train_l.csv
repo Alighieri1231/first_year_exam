@@ -1,5 +1,4 @@
 file_name,clase,is_duplicate
-benign (318).png,benign,True
 benign (319).png,benign,True
 benign (3).png,benign,True
 benign (321).png,benign,True
@@ -383,6 +382,7 @@ malignant (8).png,malignant,True
 malignant (9).png,malignant,True
 malignant (112).png,malignant,True
 malignant (113).png,malignant,True
+malignant (11).png,malignant,True
 malignant (12).png,malignant,True
 malignant (13).png,malignant,True
 malignant (14).png,malignant,True
@@ -411,7 +411,6 @@ malignant (36).png,malignant,False
 malignant (37).png,malignant,False
 malignant (38).png,malignant,False
 malignant (42).png,malignant,True
-malignant (40).png,malignant,False
 malignant (41).png,malignant,False
 malignant (43).png,malignant,False
 malignant (44).png,malignant,False
@@ -427,7 +426,6 @@ malignant (55).png,malignant,False
 malignant (56).png,malignant,False
 malignant (57).png,malignant,False
 malignant (58).png,malignant,False
-malignant (59).png,malignant,False
 malignant (60).png,malignant,False
 malignant (61).png,malignant,False
 malignant (62).png,malignant,False
@@ -440,7 +438,6 @@ malignant (69).png,malignant,False
 malignant (70).png,malignant,False
 malignant (71).png,malignant,False
 malignant (72).png,malignant,False
-malignant (73).png,malignant,False
 malignant (74).png,malignant,False
 malignant (75).png,malignant,False
 malignant (76).png,malignant,False
@@ -448,7 +445,6 @@ malignant (79).png,malignant,False
 malignant (80).png,malignant,True
 malignant (82).png,malignant,False
 malignant (83).png,malignant,False
-malignant (84).png,malignant,False
 malignant (86).png,malignant,True
 malignant (87).png,malignant,False
 malignant (89).png,malignant,False
@@ -461,7 +457,6 @@ malignant (100).png,malignant,False
 malignant (101).png,malignant,False
 malignant (102).png,malignant,False
 malignant (103).png,malignant,False
-malignant (104).png,malignant,False
 malignant (105).png,malignant,False
 malignant (106).png,malignant,True
 malignant (108).png,malignant,False
@@ -489,7 +484,6 @@ malignant (139).png,malignant,False
 malignant (140).png,malignant,False
 malignant (141).png,malignant,False
 malignant (142).png,malignant,False
-malignant (143).png,malignant,False
 malignant (144).png,malignant,False
 malignant (146).png,malignant,False
 malignant (147).png,malignant,False
@@ -510,7 +504,6 @@ malignant (161).png,malignant,False
 malignant (162).png,malignant,False
 malignant (163).png,malignant,False
 malignant (164).png,malignant,False
-malignant (11).png,malignant,True
 malignant (166).png,malignant,False
 malignant (167).png,malignant,False
 malignant (168).png,malignant,False
@@ -523,7 +516,6 @@ malignant (174).png,malignant,False
 malignant (175).png,malignant,False
 malignant (176).png,malignant,False
 malignant (177).png,malignant,False
-malignant (178).png,malignant,False
 malignant (179).png,malignant,False
 malignant (180).png,malignant,False
 malignant (181).png,malignant,False
@@ -538,7 +530,6 @@ malignant (189).png,malignant,False
 malignant (190).png,malignant,False
 malignant (191).png,malignant,False
 malignant (192).png,malignant,False
-malignant (193).png,malignant,False
 malignant (194).png,malignant,False
 malignant (195).png,malignant,False
 malignant (196).png,malignant,False
@@ -554,5 +545,4 @@ malignant (205).png,malignant,False
 malignant (206).png,malignant,False
 malignant (207).png,malignant,False
 malignant (208).png,malignant,False
-malignant (209).png,malignant,False
 malignant (210).png,malignant,False
