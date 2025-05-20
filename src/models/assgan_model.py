@@ -99,6 +99,7 @@ class ASSGAN(L.LightningModule):
         self.supervised_epochs = train_par.supervised_epochs  # e.g. 200
         self.gamma_thresh = train_par.gamma_thresh  # e.g. 0.2
         self.adam_g = train_par.adam_g
+        self.binary_split = train_par.model_opts.args.binary_split  # True/False
 
         # buffer for pulling unlabeled data
         self.unlab_iter = None
@@ -320,67 +321,150 @@ class ASSGAN(L.LightningModule):
         )
 
     def _shared_eval_step(self, batch, stage: str):
+        """
+        Paso de evaluación compartido para validación y test.
+        Si self.binary_split es True, añade stats por categoría (benigno/maligno).
+        """
         imgs = batch["image"]
-        masks = batch["mask"].unsqueeze(1).long()
-        stats = {}
+        masks = batch["mask"].unsqueeze(1).long()  # (B,1,H,W)
 
-        # forward G1/G2
+        # forward G1/G2 y promedio de probabilidades
         p1, c1 = self.generator1(self.processg1(imgs))
         p2, c2 = self.generator2(self.processg2(imgs))
-
-        # máscara promediada
         prob_avg = 0.5 * (torch.sigmoid(p1) + torch.sigmoid(p2))
-        pred_mask = (prob_avg > 0.5).long()
-        stats.update(
-            dict(
-                zip(
-                    ("tp", "fp", "fn", "tn"), get_stats(pred_mask, masks, mode="binary")
-                )
-            )
+        pred_mask = (prob_avg > 0.5).long()  # (B,1,H,W)
+
+        # stats globales
+        stats = dict(
+            zip(("tp", "fp", "fn", "tn"), get_stats(pred_mask, masks, mode="binary"))
         )
 
-        # clasificación (si está activada)
+        if self.binary_split:
+            gt_class = batch["category"].to(self.device)  # (B,)
+            benign_idx = gt_class == 0
+            malignant_idx = gt_class == 1
+            zeros = torch.tensor(0, device=self.device)
+
+            # stats benignos
+            if benign_idx.any():
+                tp_b, fp_b, fn_b, tn_b = get_stats(
+                    pred_mask[benign_idx], masks[benign_idx], mode="binary"
+                )
+            else:
+                tp_b = fp_b = fn_b = tn_b = zeros
+
+            # stats malignos
+            if malignant_idx.any():
+                tp_m, fp_m, fn_m, tn_m = get_stats(
+                    pred_mask[malignant_idx], masks[malignant_idx], mode="binary"
+                )
+            else:
+                tp_m = fp_m = fn_m = tn_m = zeros
+
+            stats.update(
+                {
+                    "tp_b": tp_b,
+                    "fp_b": fp_b,
+                    "fn_b": fn_b,
+                    "tn_b": tn_b,
+                    "tp_m": tp_m,
+                    "fp_m": fp_m,
+                    "fn_m": fn_m,
+                    "tn_m": tn_m,
+                }
+            )
+
+        # clasificación (si aplica)
         if self.classification_loss:
-            # promedia probabilidades de cls
             probs1 = torch.softmax(c1, dim=1)
             probs2 = torch.softmax(c2, dim=1)
             probs_avg = 0.5 * (probs1 + probs2)
             pred_cls = probs_avg.argmax(dim=1)
             gt_cls = batch["category"].to(self.device)
-            correct = (pred_cls == gt_cls).sum()
-            total = gt_cls.size(0)
-            stats["class_correct"] = correct
-            stats["class_total"] = total
+            stats["class_correct"] = (pred_cls == gt_cls).sum()
+            stats["class_total"] = gt_cls.size(0)
 
         return stats
 
     def shared_epoch_end(self, outputs, stage: str):
-        # segmentación
+        """
+        Agrega y loguea IoU, F1 (Dice) y accuracy.
+        Si self.binary_split es True, separa métricas para benignos y malignos.
+        """
+        # — stats globales —
         tp = torch.cat([o["tp"] for o in outputs])
         fp = torch.cat([o["fp"] for o in outputs])
         fn = torch.cat([o["fn"] for o in outputs])
         tn = torch.cat([o["tn"] for o in outputs])
 
-        self.log_dict(
-            {
-                f"{stage}_per_image_iou": iou_score(
-                    tp, fp, fn, tn, reduction="micro-imagewise"
-                ),
-                f"{stage}_dataset_iou": iou_score(tp, fp, fn, tn, reduction="micro"),
-                f"{stage}_per_image_f1": f1_score(
-                    tp, fp, fn, tn, reduction="micro-imagewise"
-                ),
-                f"{stage}_dataset_f1": f1_score(tp, fp, fn, tn, reduction="micro"),
-                f"{stage}_per_image_acc": accuracy(
-                    tp, fp, fn, tn, reduction="micro-imagewise"
-                ),
-                f"{stage}_dataset_acc": accuracy(tp, fp, fn, tn, reduction="micro"),
-            },
-            prog_bar=True,
-            sync_dist=True,
-        )
+        if not self.binary_split:
+            # logging sólo global
+            self.log_dict(
+                {
+                    f"{stage}_per_image_iou": iou_score(
+                        tp, fp, fn, tn, reduction="micro-imagewise"
+                    ),
+                    f"{stage}_dataset_iou": iou_score(
+                        tp, fp, fn, tn, reduction="micro"
+                    ),
+                    f"{stage}_per_image_f1": f1_score(
+                        tp, fp, fn, tn, reduction="micro-imagewise"
+                    ),
+                    f"{stage}_dataset_f1": f1_score(tp, fp, fn, tn, reduction="micro"),
+                    f"{stage}_per_image_acc": accuracy(
+                        tp, fp, fn, tn, reduction="micro-imagewise"
+                    ),
+                    f"{stage}_dataset_acc": accuracy(tp, fp, fn, tn, reduction="micro"),
+                },
+                prog_bar=True,
+                sync_dist=True,
+            )
+        else:
+            # — stats benignos —
+            tp_b = torch.cat([o["tp_b"] for o in outputs])
+            fp_b = torch.cat([o["fp_b"] for o in outputs])
+            fn_b = torch.cat([o["fn_b"] for o in outputs])
+            tn_b = torch.cat([o["tn_b"] for o in outputs])
+            # — stats malignos —
+            tp_m = torch.cat([o["tp_m"] for o in outputs])
+            fp_m = torch.cat([o["fp_m"] for o in outputs])
+            fn_m = torch.cat([o["fn_m"] for o in outputs])
+            tn_m = torch.cat([o["tn_m"] for o in outputs])
 
-        # clasificación
+            def _mk(ms, suffix=""):
+                tp, fp, fn, tn = ms
+                return {
+                    f"{stage}_per_image_iou{suffix}": iou_score(
+                        tp, fp, fn, tn, reduction="micro-imagewise"
+                    ),
+                    f"{stage}_dataset_iou{suffix}": iou_score(
+                        tp, fp, fn, tn, reduction="micro"
+                    ),
+                    f"{stage}_per_image_f1{suffix}": f1_score(
+                        tp, fp, fn, tn, reduction="micro-imagewise"
+                    ),
+                    f"{stage}_dataset_f1{suffix}": f1_score(
+                        tp, fp, fn, tn, reduction="micro"
+                    ),
+                    f"{stage}_per_image_acc{suffix}": accuracy(
+                        tp, fp, fn, tn, reduction="micro-imagewise"
+                    ),
+                    f"{stage}_dataset_acc{suffix}": accuracy(
+                        tp, fp, fn, tn, reduction="micro"
+                    ),
+                }
+
+            metrics = {}
+            # global
+            metrics.update(_mk((tp, fp, fn, tn)))
+            # benignos
+            metrics.update(_mk((tp_b, fp_b, fn_b, tn_b), suffix="_benign"))
+            # malignos
+            metrics.update(_mk((tp_m, fp_m, fn_m, tn_m), suffix="_malignant"))
+
+            self.log_dict(metrics, prog_bar=True, sync_dist=True)
+
+        # — clasificación — (idéntico siempre que classification_loss=True)
         if self.classification_loss:
             total_correct = sum(o["class_correct"] for o in outputs)
             total_samples = sum(o["class_total"] for o in outputs)
