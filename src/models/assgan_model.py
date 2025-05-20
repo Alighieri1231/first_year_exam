@@ -99,7 +99,7 @@ class ASSGAN(L.LightningModule):
         self.supervised_epochs = train_par.supervised_epochs  # e.g. 200
         self.gamma_thresh = train_par.gamma_thresh  # e.g. 0.2
         self.adam_g = train_par.adam_g
-        self.binary_split = train_par.model_opts.args.binary_split  # True/False
+        self.binary_split = model_opts.args.binary_split  # True/False
 
         # buffer for pulling unlabeled data
         self.unlab_iter = None
