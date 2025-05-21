@@ -37,7 +37,7 @@ train_par:
   lambda_clas_u: 0.1
 
   # semi-supervisión
-  supervised_epochs: 200 #200
+  supervised_epochs: 400 #200
   gamma_thresh: 0.2 #0.8 #0.5 #0.2
 
   # paths y early stopping
@@ -48,7 +48,7 @@ train_par:
     mode: "max"
 
 dataset:
-  project: "ASSGAN splitted" 
+  project: "ASSGAN splitted 400" 
   experiment: ""
   data_dir: "/scratch/bcastane_lab/eochoaal/first_year_exam/data/data_uncorrected"
   train: "/data/GitHub/first_year_exam/data/data_uncorrected/train.csv" #/data_uncorrected/train.csv"
