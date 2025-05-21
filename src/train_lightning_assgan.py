@@ -64,6 +64,7 @@ def main():
         "--binary-split",
         type=str,
         choices=["True", "False"],
+        default=False,
         help="Reemplaza conf.model_opts.args.binary_split",
     )
 

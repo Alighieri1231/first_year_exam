@@ -2,7 +2,7 @@
 BASE_CFG=configs/assgan_config_train.yaml
 BASE_DATA=/scratch/bcastane_lab/eochoaal/first_year_exam/data
 REPS=(1)
-SUFFIXES=(l lm)
+SUFFIXES=(lm)
 GAMMAS=(0.2 0.5 0.8)
 CMD="python -m src.train_lightning_assgan"
 
@@ -10,12 +10,6 @@ CMD="python -m src.train_lightning_assgan"
 # 2) Sufijos sobre data_uncorrected × replicas × gamma_thresh
 for rep in "${REPS[@]}"; do
   for suf in "${SUFFIXES[@]}"; do
-    # Determinar si hay que añadir --binary-split False
-    extra_args=""
-    if [[ "$suf" == "lm" || "$suf" == "lb" ]]; then
-      extra_args="--binary-split False"
-    fi
-
     for gt in "${GAMMAS[@]}"; do
       RUNID="uncorrected_${suf}_r${rep}_gt${gt}"
       echo "=== Run: ${RUNID} ==="
