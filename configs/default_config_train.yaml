@@ -49,7 +49,7 @@ train_par:
   num_classes: 2
 
 dataset:
-  project: "NETs unlabel splitted"
+  project: "NETs splitted"
   experiment: ""
   data_dir: "/data/GitHub/first_year_exam/data/data_uncorrected"
   train: "/data/GitHub/first_year_exam/data/data_uncorrected/train.csv"
@@ -62,4 +62,4 @@ dataset:
   patch_overlap: 0
   queue_length: 100
   samples_per_volume: 10
-  unlabeled_dataset: True
+  unlabeled_dataset: False
