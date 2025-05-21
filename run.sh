@@ -37,12 +37,6 @@ SUFFIXES=(lb lm)
 
 for rep in "${REPS[@]}"; do
   for suf in "${SUFFIXES[@]}"; do
-   # Determinar si hay que añadir --binary-split False
-    extra_args=""
-    if [[ "$suf" == "lm" || "$suf" == "lb" ]]; then
-      extra_args="--binary-split False"
-    fi
-
     for arch in "${ARCHS[@]}"; do
       TRAIN_CSV="${BASE_DATA}/train_${suf}.csv"
       DEV_CSV="${BASE_DATA}/validation_${suf}.csv"
