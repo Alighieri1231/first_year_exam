@@ -61,7 +61,7 @@ def main():
     parser.add_argument(
         "--binary-split",
         type=str,
-        default=None,
+        default=False,
         help="Override de la arquitectura (model_opts.args.binary_split)",
     )
     args = parser.parse_args()
