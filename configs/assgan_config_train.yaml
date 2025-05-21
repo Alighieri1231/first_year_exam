@@ -6,7 +6,7 @@ model_opts:
     arch2: "pspnet"             # nombre de la arquitectura para G2
     encoder_name2: "resnet34"
     classification_loss: False
-    binary_split: True
+    binary_split: False
 
 train_par:
   # reproducibilidad y dispositivos
@@ -37,7 +37,7 @@ train_par:
   lambda_clas_u: 0.1
 
   # semi-supervisión
-  supervised_epochs: 1 #200
+  supervised_epochs: 200 #200
   gamma_thresh: 0.2 #0.8 #0.5 #0.2
 
   # paths y early stopping
@@ -48,8 +48,8 @@ train_par:
     mode: "max"
 
 dataset:
-  project: "ASSGAN splitted 1" 
-  experiment: ""
+  project: "ASSGAN" 
+  experiment: "experiment"
   data_dir: "/scratch/bcastane_lab/eochoaal/first_year_exam/data/data_uncorrected"
   train: "/data/GitHub/first_year_exam/data/data_uncorrected/train.csv" #/data_uncorrected/train.csv"
   dev: "/data/GitHub/first_year_exam/data/data_uncorrected/validation.csv" #data_uncorrected/validation.csv"
