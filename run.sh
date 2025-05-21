@@ -33,7 +33,7 @@ CMD="python -m src.train_lightning_seg"
 ##
 SUFFIXES=(l nl lb lm)
 #SUFFIXES=(l nl)
-SUFFIXES=(l lm)
+SUFFIXES=(lb lm)
 
 for rep in "${REPS[@]}"; do
   for suf in "${SUFFIXES[@]}"; do
