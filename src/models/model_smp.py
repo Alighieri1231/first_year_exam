@@ -134,57 +134,58 @@ class USModel(L.LightningModule):
         # Si self.binary_split=True: calculamos stats por clase
         # ——————————————————————————————————————————————
         # stats globales
-        tp, fp, fn, tn = smp.metrics.get_stats(
-            pred_mask.long(), mask.long(), mode="binary"
-        )
-
-        # máscara de índices
-        benign_idx = gt_class == 0
-        malignant_idx = gt_class == 1
-        zeros = torch.tensor(0, device=self.device)
-
-        # stats benignos
-        if benign_idx.any():
-            tp_b, fp_b, fn_b, tn_b = smp.metrics.get_stats(
-                pred_mask[benign_idx].long(),
-                mask[benign_idx].long(),
-                mode="binary",
-            )
         else:
-            tp_b = fp_b = fn_b = tn_b = zeros
-
-        # stats malignos
-        if malignant_idx.any():
-            tp_m, fp_m, fn_m, tn_m = smp.metrics.get_stats(
-                pred_mask[malignant_idx].long(),
-                mask[malignant_idx].long(),
-                mode="binary",
+            tp, fp, fn, tn = smp.metrics.get_stats(
+                pred_mask.long(), mask.long(), mode="binary"
             )
-        else:
-            tp_m = fp_m = fn_m = tn_m = zeros
 
-        out = {
-            "loss": loss,
-            # globales
-            "tp": tp,
-            "fp": fp,
-            "fn": fn,
-            "tn": tn,
-            # benignos
-            "tp_b": tp_b,
-            "fp_b": fp_b,
-            "fn_b": fn_b,
-            "tn_b": tn_b,
-            # malignos
-            "tp_m": tp_m,
-            "fp_m": fp_m,
-            "fn_m": fn_m,
-            "tn_m": tn_m,
-        }
-        if self.classification_loss:
-            acc_clas = (logits_clas.argmax(1) == gt_class).float().mean()
-            self.log(f"{stage}_acc_clas", acc_clas, prog_bar=True, sync_dist=True)
-        return out
+            # máscara de índices
+            benign_idx = gt_class == 0
+            malignant_idx = gt_class == 1
+            zeros = torch.tensor(0, device=self.device)
+
+            # stats benignos
+            if benign_idx.any():
+                tp_b, fp_b, fn_b, tn_b = smp.metrics.get_stats(
+                    pred_mask[benign_idx].long(),
+                    mask[benign_idx].long(),
+                    mode="binary",
+                )
+            else:
+                tp_b = fp_b = fn_b = tn_b = zeros
+
+            # stats malignos
+            if malignant_idx.any():
+                tp_m, fp_m, fn_m, tn_m = smp.metrics.get_stats(
+                    pred_mask[malignant_idx].long(),
+                    mask[malignant_idx].long(),
+                    mode="binary",
+                )
+            else:
+                tp_m = fp_m = fn_m = tn_m = zeros
+
+            out = {
+                "loss": loss,
+                # globales
+                "tp": tp,
+                "fp": fp,
+                "fn": fn,
+                "tn": tn,
+                # benignos
+                "tp_b": tp_b,
+                "fp_b": fp_b,
+                "fn_b": fn_b,
+                "tn_b": tn_b,
+                # malignos
+                "tp_m": tp_m,
+                "fp_m": fp_m,
+                "fn_m": fn_m,
+                "tn_m": tn_m,
+            }
+            if self.classification_loss:
+                acc_clas = (logits_clas.argmax(1) == gt_class).float().mean()
+                self.log(f"{stage}_acc_clas", acc_clas, prog_bar=True, sync_dist=True)
+            return out
 
     def shared_epoch_end(self, outputs, stage):
         # Si no pedimos split, solo usamos las stats globales
@@ -222,53 +223,54 @@ class USModel(L.LightningModule):
         # Si self.binary_split=True: agregamos global + por clase
         # ——————————————————————————————————————————————
         # empaquetar stats globales
-        tp = torch.cat([x["tp"] for x in outputs])
-        fp = torch.cat([x["fp"] for x in outputs])
-        fn = torch.cat([x["fn"] for x in outputs])
-        tn = torch.cat([x["tn"] for x in outputs])
-        # benignos
-        tp_b = torch.cat([x["tp_b"] for x in outputs])
-        fp_b = torch.cat([x["fp_b"] for x in outputs])
-        fn_b = torch.cat([x["fn_b"] for x in outputs])
-        tn_b = torch.cat([x["tn_b"] for x in outputs])
-        # malignos
-        tp_m = torch.cat([x["tp_m"] for x in outputs])
-        fp_m = torch.cat([x["fp_m"] for x in outputs])
-        fn_m = torch.cat([x["fn_m"] for x in outputs])
-        tn_m = torch.cat([x["tn_m"] for x in outputs])
+        else:
+            tp = torch.cat([x["tp"] for x in outputs])
+            fp = torch.cat([x["fp"] for x in outputs])
+            fn = torch.cat([x["fn"] for x in outputs])
+            tn = torch.cat([x["tn"] for x in outputs])
+            # benignos
+            tp_b = torch.cat([x["tp_b"] for x in outputs])
+            fp_b = torch.cat([x["fp_b"] for x in outputs])
+            fn_b = torch.cat([x["fn_b"] for x in outputs])
+            tn_b = torch.cat([x["tn_b"] for x in outputs])
+            # malignos
+            tp_m = torch.cat([x["tp_m"] for x in outputs])
+            fp_m = torch.cat([x["fp_m"] for x in outputs])
+            fn_m = torch.cat([x["fn_m"] for x in outputs])
+            tn_m = torch.cat([x["tn_m"] for x in outputs])
 
-        # funciones helper para no repetir
-        def _make_metrics(tp, fp, fn, tn, suffix=""):
-            return {
-                f"{stage}_per_image_iou{suffix}": smp.metrics.iou_score(
-                    tp, fp, fn, tn, reduction="micro-imagewise"
-                ),
-                f"{stage}_dataset_iou{suffix}": smp.metrics.iou_score(
-                    tp, fp, fn, tn, reduction="micro"
-                ),
-                f"{stage}_per_image_f1{suffix}": smp.metrics.f1_score(
-                    tp, fp, fn, tn, reduction="micro-imagewise"
-                ),
-                f"{stage}_dataset_f1{suffix}": smp.metrics.f1_score(
-                    tp, fp, fn, tn, reduction="micro"
-                ),
-                f"{stage}_per_image_acc{suffix}": smp.metrics.accuracy(
-                    tp, fp, fn, tn, reduction="micro-imagewise"
-                ),
-                f"{stage}_dataset_acc{suffix}": smp.metrics.accuracy(
-                    tp, fp, fn, tn, reduction="micro"
-                ),
-            }
+            # funciones helper para no repetir
+            def _make_metrics(tp, fp, fn, tn, suffix=""):
+                return {
+                    f"{stage}_per_image_iou{suffix}": smp.metrics.iou_score(
+                        tp, fp, fn, tn, reduction="micro-imagewise"
+                    ),
+                    f"{stage}_dataset_iou{suffix}": smp.metrics.iou_score(
+                        tp, fp, fn, tn, reduction="micro"
+                    ),
+                    f"{stage}_per_image_f1{suffix}": smp.metrics.f1_score(
+                        tp, fp, fn, tn, reduction="micro-imagewise"
+                    ),
+                    f"{stage}_dataset_f1{suffix}": smp.metrics.f1_score(
+                        tp, fp, fn, tn, reduction="micro"
+                    ),
+                    f"{stage}_per_image_acc{suffix}": smp.metrics.accuracy(
+                        tp, fp, fn, tn, reduction="micro-imagewise"
+                    ),
+                    f"{stage}_dataset_acc{suffix}": smp.metrics.accuracy(
+                        tp, fp, fn, tn, reduction="micro"
+                    ),
+                }
 
-        metrics = {}
-        # globales
-        metrics.update(_make_metrics(tp, fp, fn, tn))
-        # benignos
-        metrics.update(_make_metrics(tp_b, fp_b, fn_b, tn_b, suffix="_benign"))
-        # malignos
-        metrics.update(_make_metrics(tp_m, fp_m, fn_m, tn_m, suffix="_malignant"))
+            metrics = {}
+            # globales
+            metrics.update(_make_metrics(tp, fp, fn, tn))
+            # benignos
+            metrics.update(_make_metrics(tp_b, fp_b, fn_b, tn_b, suffix="_benign"))
+            # malignos
+            metrics.update(_make_metrics(tp_m, fp_m, fn_m, tn_m, suffix="_malignant"))
 
-        self.log_dict(metrics, prog_bar=True, sync_dist=True)
+            self.log_dict(metrics, prog_bar=True, sync_dist=True)
 
     def training_step(self, batch, batch_idx):
         train_loss_info = self.shared_step(batch, "train")
