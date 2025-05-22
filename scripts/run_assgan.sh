@@ -2,7 +2,7 @@
 BASE_CFG=configs/assgan_config_train.yaml
 BASE_DATA=/scratch/bcastane_lab/eochoaal/first_year_exam/data
 REPS=(1)
-SUFFIXES=(l nl)
+SUFFIXES=(lm lb)
 GAMMAS=(0.2 0.5 0.8)
 CMD="python -m src.train_lightning_assgan"
 
