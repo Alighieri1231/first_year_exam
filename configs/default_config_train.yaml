@@ -19,7 +19,7 @@ train_par:
   strategy: 'ddp_find_unused_parameters_true' #'ddp' #ddp
   profiler: False
   epochs: 200
-  batch_size: 64 #32
+  batch_size: 32 64 #32
   workers: 8
   lr: 0.0008393699253215599 #0.001
   weight_decay: 0.0000082600425011173 #0.001
