@@ -5,7 +5,7 @@ model_opts:
     #binary outchannel 1, multiclass outchannel num_classes
     outchannels: 1
     encoder_name: "resnet34" #"mit_b1" #resnet34 classic one mit_b1
-    arch: "PSPNet" #"FPN" #FPN Unet, Segformer
+    arch: "deeplabv3plus" #"PSPNet" #"FPN" #FPN Unet, Segformer
     encoder_weights: imagenet #imagenet default, null for no pretraining
     # FPN The net_depth will change accordingly to the patch size. For 128x128 it is 3, for 256x256 it is 4. This will define the number of layers of the architecture.
     net_depth: 5
@@ -21,16 +21,16 @@ train_par:
   epochs: 200
   batch_size: 64 #32
   workers: 8
-  lr: 0.001
-  weight_decay: 0.001
+  lr: 0.0008393699253215599 #0.001
+  weight_decay: 0.0000082600425011173 #0.001
   eval_threshold: 0.1
   patience: 40
   early_stopping_flag: True
   results_path: "/data/GitHub/first_year_exam/results"
   optimizer:
-    name: "adamw"
+    name: "adam" #"adamw"
   scheduler:
-    name: 'step_lr'
+    name: 'cosine_annealing' #'step_lr'
   loss_opts:
     name: 'tversky' #dice
     args:
@@ -49,8 +49,8 @@ train_par:
   num_classes: 2
 
 dataset:
-  project: "NETs unlabel splitted"
-  experiment: ""
+  project: "NETs splitted"
+  experiment: "pruebahyper"
   data_dir: "/data/GitHub/first_year_exam/data/data_uncorrected"
   train: "/data/GitHub/first_year_exam/data/data_uncorrected/train.csv"
   dev: "/data/GitHub/first_year_exam/data/data_uncorrected/validation.csv"
