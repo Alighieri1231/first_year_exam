@@ -62,4 +62,4 @@ dataset:
   patch_overlap: 0
   queue_length: 100
   samples_per_volume: 10
-  unlabeled_dataset: True
+  unlabeled_dataset: False
