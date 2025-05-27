@@ -1,7 +1,0 @@
-seed_everything: 123
-trainer:
-  max_epochs: 20
-model:
-  class_path: MNISTModel
-data:
-  class_path: MNISTDataModule

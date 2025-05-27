@@ -1,4 +1,0 @@
-trainer:
-  accelerator: "cpu"
-  detect_anomaly: true
-  fast_dev_run: 1
