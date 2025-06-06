@@ -160,7 +160,6 @@ def main():
 
     # Entrenar modelo
     trainer.fit(model, datamodule=data_module)
-
     trainer.test(model=model, datamodule=data_module)
 
 
